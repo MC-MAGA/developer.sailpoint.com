@@ -30,7 +30,7 @@ permissions:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   publish:
-    runs-on: macos-latest-large
+    runs-on: developer_site_runner
     steps:
       - name: Configure AWS credentials from Test account
         uses: aws-actions/configure-aws-credentials@v3
@@ -55,6 +55,7 @@ jobs:
           elif [ "${{ github.ref }}" = "refs/heads/stage" ]; then
             echo "STACK=developer-sailpoint-site-stage" >> $GITHUB_ENV
           fi
+
       # push these files to AWS
       - name: run SAM build
         run: |
@@ -82,6 +83,7 @@ jobs:
           export NODE_OPTIONS="--max_old_space_size=16384"
           export DOCUSAURUS_IGNORE_SSG_WARNINGS=true
           npm ci 
+          npm run gen-all-api-specs-code-examples
           npm run gen-api-docs-all
           npm run build
       # push these files to AWS

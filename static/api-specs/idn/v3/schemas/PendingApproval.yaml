@@ -4,6 +4,10 @@ properties:
     type: string
     description: The approval id.
     example: id12345
+  accessRequestId:
+    type: string
+    description: This is the access request id.
+    example: 2b838de9db9babcfe646d4f274ad4238
   name:
     type: string
     description: The name of the approval.
@@ -29,12 +33,7 @@ properties:
   requester:
     $ref: './AccessItemRequester.yaml'
   requestedFor:
-    type: array
-    description: Identities access was requested for. 
-    items: 
-      $ref: './AccessItemRequestedFor.yaml'
-    minItems: 1
-    maxItems: 10
+    $ref: './AccessItemRequestedFor.yaml'
   owner:
     type: object
     description: Access item owner's identity. 
