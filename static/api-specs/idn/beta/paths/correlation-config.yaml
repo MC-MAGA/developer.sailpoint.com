@@ -14,12 +14,13 @@ get:
     given ID.
   parameters:
     - in: path
-      name: id
+      name: sourceId
       required: true
       schema:
         type: string
       description: The source id
       example: 2c9180835d191a86015d28455b4a2329
+      x-sailpoint-resource-operation-id: listSources
   responses:
     '200':
       description: Correlation configuration for a source
@@ -56,12 +57,13 @@ put:
     configuration provided in the request body.
   parameters:
     - in: path
-      name: id
+      name: sourceId
       required: true
       schema:
         type: string
       description: The source id
       example: 2c9180835d191a86015d28455b4a2329
+      x-sailpoint-resource-operation-id: listSources
   requestBody:
     required: true
     content:

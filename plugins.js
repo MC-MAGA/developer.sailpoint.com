@@ -1618,7 +1618,7 @@ module.exports = [
       docsPluginId: 'isc',
       config: {
         isc_versioned: {
-          specPath: 'static/api-specs/idn/sailpoint-api.v2024.yaml',
+          specPath: 'static/code-examples/v2024/v2024.yaml',
           outputDir: 'docs/api/v2024',
           sidebarOptions: {
             groupPathsBy: 'tag',
@@ -1626,6 +1626,7 @@ module.exports = [
           },
           version: 'v2024',
           label: 'v2024',
+          downloadUrl: 'https://raw.githubusercontent.com/sailpoint-oss/api-specs/refs/heads/main/dereferenced/deref-sailpoint-api.v2024.yaml',
           baseUrl: '/docs/api/v2024',
           template: 'api.mustache',
           markdownGenerators: {
@@ -1639,14 +1640,14 @@ module.exports = [
             //   baseUrl: '/docs/api/v2025',
             // },
             v3: {
-              specPath: 'static/api-specs/idn/sailpoint-api.v3.yaml',
+              specPath: 'static/code-examples/v3/v3.yaml',
               outputDir: 'docs/api/v3',
               downloadUrl: 'https://raw.githubusercontent.com/sailpoint-oss/api-specs/main/dereferenced/deref-sailpoint-api.v3.yaml',
               label: 'v3',
               baseUrl: '/docs/api/v3',
             },
             beta: {
-              specPath: 'static/api-specs/idn/sailpoint-api.beta.yaml',
+              specPath: 'static/code-examples/beta/beta.yaml',
               outputDir: 'docs/api/beta',
               downloadUrl: 'https://raw.githubusercontent.com/sailpoint-oss/api-specs/main/dereferenced/deref-sailpoint-api.beta.yaml',
               label: 'Beta',

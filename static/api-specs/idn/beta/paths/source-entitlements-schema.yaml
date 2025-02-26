@@ -6,8 +6,9 @@ get:
   operationId: getSourceEntitlementsSchema
   parameters:
     - in: path
-      name: id
+      name: sourceId
       required: true
+      x-sailpoint-resource-operation-id: listSources
       schema:
         type: string
       description: The Source id
@@ -48,8 +49,9 @@ post:
   operationId: importSourceEntitlementsSchema
   parameters:
     - in: path
-      name: id
+      name: sourceId
       required: true
+      x-sailpoint-resource-operation-id: listSources
       schema:
         type: string
       description: The Source id

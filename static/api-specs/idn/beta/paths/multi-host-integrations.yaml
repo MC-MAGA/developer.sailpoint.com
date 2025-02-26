@@ -9,10 +9,11 @@ post:
     A token with Org Admin or Multi-Host Admin authority is required to access this endpoint.
   operationId: createSourcesWithinMultiHost
   parameters:
-    - name: id
+    - name: multihostId
       in: path
       description: ID of the Multi-Host Integration.
       required: true
+      x-sailpoint-resource-operation-id: getMultiHostIntegrations
       style: simple
       explode: false
       schema:
@@ -56,10 +57,11 @@ get:
     A token with Org Admin or Multi-Host Integration Admin authority is required to access this endpoint.
   operationId: getMultiHostIntegrations
   parameters:
-    - name: id
+    - name: multihostId
       in: path
       description: ID of the Multi-Host Integration.
       required: true
+      x-sailpoint-resource-operation-id: getMultiHostIntegrations
       style: simple
       explode: false
       schema:
@@ -98,10 +100,11 @@ delete:
     A token with Org Admin or Multi Host Admin authority is required to access this endpoint.
   operationId: deleteMultiHost
   parameters:
-    - name: id
+    - name: multihostId
       in: path
       description: ID of Multi-Host Integration to delete.
       required: true
+      x-sailpoint-resource-operation-id: getMultiHostIntegrations
       style: simple
       explode: false
       schema:
@@ -136,10 +139,11 @@ patch:
     
     A token with Org Admin or Multi-Host Admin authority is required to access this endpoint.
   parameters:
-    - name: multihost_id
+    - name: multihostId
       in: path
       description: ID of the Multi-Host Integration to update.
       required: true
+      x-sailpoint-resource-operation-id: getMultiHostIntegrations
       style: simple
       explode: false
       schema:
