@@ -39,7 +39,7 @@ export default function HomepageGettingStarted(): JSX.Element {
         <div className={styles.carousel}>
           <iframe
             className={styles.video}
-            src="https://www.youtube.com/embed/MYhWuqAAUvY?si=GPhe53efO7QLJ_RJ"
+            src="https://www.youtube.com/embed/44R4iXTazUQ?si=kHALvSCvKz_cBKGK"
             title="YouTube video player"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

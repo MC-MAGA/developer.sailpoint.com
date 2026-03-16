@@ -55,6 +55,10 @@
   margin-right: 50px;
 }
 
+.contentContainer {
+  min-width: 0;
+}
+
 @media only screen and (max-width: 1178px) {
   .carousel {
     margin-top: 0px;
