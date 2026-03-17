@@ -1,9 +1,14 @@
 /* Getting Started Card */
 .card {
-  height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 200px;
   position: relative;
   margin-top: 30px;
   margin-bottom: 30px;
+  padding: 20px;
   opacity: 1;
   transition: all 0.3s;
   background: var(--dev-new-car-background);
@@ -28,46 +33,36 @@
   box-shadow: var(--dev-card-selected);
 }
 
-.cardText {
-  position: absolute;
-  margin: 20px;
-  font-size: 16px;
-  font-weight: 600;
-  width: 135px;
-  bottom: 32px;
-  left: 0;
+.cardIcon {
+  width: 30%;
+  flex-shrink: 0;
+}
+
+.product {
+  font-size: 12px;
+  font-weight: 500;
   color: var(--ifm-primary-text-color);
 }
 
-.cardIcon {
-  position: absolute;
-  margin: 20px;
-  top: 0;
-  left: 0;
-  width: 30%;
+.idn,
+.iiq {
+  color: var(--ifm-primary-text-color);
+  font-weight: 400;
+}
+
+.cardText {
+  font-size: 16px;
+  font-weight: 600;
+  flex: 1;
+  color: var(--ifm-primary-text-color);
+  line-height: 1.3;
 }
 
 .cardArrow {
   position: absolute;
-  margin: 20px;
-  bottom: 25px;
-  right: 0;
+  bottom: 20px;
+  right: 20px;
   width: 20px;
-}
-
-.product {
-  position: absolute;
-  margin: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  width: 120px;
-  bottom: 50px;
-  left: 0;
-}
-
-.idn, .iiq {
-  color: var(--ifm-primary-text-color);
-  font-weight: 400;
 }
 
 @media only screen and (max-width: 570px) {
