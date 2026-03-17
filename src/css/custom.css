@@ -368,8 +368,30 @@ h1 {
   text-decoration: underline !important;
 }
 
+/* Header: base and responsive layout */
 .navbar__logo {
   margin-right: 0.5rem;
+}
+
+.navbar__logo img {
+  height: auto;
+  max-height: 32px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Prevent navbar content from overflowing on narrow viewports */
+.navbar__inner {
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.navbar__items {
+  min-width: 0;
+}
+
+.navbar__item {
+  white-space: nowrap;
 }
 
 .cardContainer_S8oU {
@@ -383,20 +405,80 @@ h1 {
   transform: scale(1.02);
 }
 
+/* Responsive logo sizing so lockup doesn’t dominate on smaller screens */
 @media only screen and (max-width: 1450px) {
-  .navbar__logo {
-    content: var(--dev-sailpoint-small-logo);
+  .navbar__logo img {
+    max-height: 28px;
   }
 }
+
+@media only screen and (max-width: 1200px) {
+  .navbar__logo img {
+    max-height: 26px;
+  }
+
+  .navbar__link {
+    font-size: 0.9rem;
+  }
+}
+
 @media only screen and (max-width: 1043px) {
   .navbar__item {
     padding: 4px 8px;
+  }
+
+  .navbar__logo img {
+    max-height: 24px;
+  }
+}
+
+/*
+ * Custom navbar breakpoint: hamburger menu at 1410px so nav items never overlap the logo.
+ */
+@media only screen and (max-width: 1410px) {
+  .navbar__toggle {
+    display: inherit;
+  }
+
+  .navbar__item {
+    display: none;
+  }
+
+  .navbar__logo img {
+    max-height: 28px;
+  }
+
+  .colorModeToggle {
+    display: none;
+  }
+}
+
+/* Mobile sidebar (hamburger menu open) */
+@media (max-width: 1200px) {
+  .navbar-sidebar__item {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .menu__link {
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 }
 
 @media (max-width: 768px) {
   .menu__link {
     padding-left: 8%;
+  }
+
+  .navbar__logo img {
+    max-height: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar__logo img {
+    max-height: 22px;
   }
 }
 
@@ -405,6 +487,18 @@ h1 {
   margin-top: 9px;
   font-size: 22px;
   font-weight: 400;
+}
+
+@media (max-width: 1200px) {
+  .navbar__title {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar__title {
+    font-size: 16px;
+  }
 }
 
 .menu__link {
