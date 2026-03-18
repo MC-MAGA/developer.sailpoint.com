@@ -19,25 +19,25 @@ const HomepageCard: React.FC<HomepageCardProps> = ({ link, title, image, product
     <Link to={link}>
       <div className={styles.card}>
         {image && (
-          <>
-            <ThemedImage
-              className={styles.cardIcon}
-              sources={{
-                light: useBaseUrl(image),
-                dark: useBaseUrl(addDarkToFileName(image)),
-              }}
-            />
-            <ThemedImage
-              className={styles.cardArrow}
-              sources={{
-                light: useBaseUrl('/homepage/arrow-right.png'),
-                dark: useBaseUrl('/homepage/arrow-right-dark.png'),
-              }}
-            />
-          </>
+          <ThemedImage
+            className={styles.cardIcon}
+            sources={{
+              light: useBaseUrl(image),
+              dark: useBaseUrl(addDarkToFileName(image)),
+            }}
+          />
         )}
-        <div className={styles.cardText}>{title}</div>
         <div className={`${styles.product} ${productStyles}`}>{product}</div>
+        <div className={styles.cardText}>{title}</div>
+        {image && (
+          <ThemedImage
+            className={styles.cardArrow}
+            sources={{
+              light: useBaseUrl('/homepage/arrow-right.png'),
+              dark: useBaseUrl('/homepage/arrow-right-dark.png'),
+            }}
+          />
+        )}
       </div>
     </Link>
   );
