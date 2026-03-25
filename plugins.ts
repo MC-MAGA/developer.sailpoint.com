@@ -12,6 +12,13 @@ const pluginConfig = [
               // See https://github.com/facebook/docusaurus/discussions/11199
               concatenateModules: false,
             },
+            resolve: {
+              fallback: {
+                // postman-code-generators uses Node's `path` module, which is
+                // not available in the browser. Polyfill it so Rspack can bundle it.
+                path: require.resolve('path-browserify'),
+              },
+            },
           };
         },
       };
