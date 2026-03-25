@@ -96,16 +96,8 @@ jobs:
           echo ${{ secrets.NPM_FONTAWESOME_CONFIG }} | base64 -d >> .npmrc
           export NODE_OPTIONS="--max_old_space_size=60000"
           export DOCUSAURUS_IGNORE_SSG_WARNINGS=true
-          NPROC=$(nproc)
-          if [ "$NPROC" -le 1 ]; then
-            SSG_WORKERS=1
-          else
-            SSG_WORKERS=$((NPROC - 1))
-            [ "$SSG_WORKERS" -lt 10 ] && SSG_WORKERS=10
-          fi
-          [ "$SSG_WORKERS" -gt 16 ] && SSG_WORKERS=16
-          export DOCUSAURUS_SSG_WORKER_THREAD_COUNT=$SSG_WORKERS
-          export DOCUSAURUS_SSG_WORKER_THREAD_RECYCLER_MAX_MEMORY=2147483648
+          export DOCUSAURUS_SSG_WORKER_THREAD_COUNT=10
+          export DOCUSAURUS_SSG_WORKER_THREAD_RECYCLER_MAX_MEMORY=1000000000
 
           npm ci 
           npm run gen-api-docs-all
