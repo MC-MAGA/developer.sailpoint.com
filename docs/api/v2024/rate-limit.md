@@ -14,8 +14,6 @@ tags: ['Rate Limit']
 ## Rate Limits
 
 There is a default rate limit of 100 requests per `client_id` per 10 seconds for v2024 API calls through the API gateway.
-Custom rate limits can be set per API in the [sp-gateway route spec](https://github.com/sailpoint/cloud-api-client-common/blob/master/api-route-specs/sp-gateway-routes.yaml),
-or per tenant as a [dynamic rate limit](https://github.com/sailpoint/cloud-api-client-common/blob/master/api-route-specs/dynamic-rate-limits.yaml).
 If you exceed the rate limit, expect the following response from the API:
 
 **HTTP Status Code**: 429 Too Many Requests
