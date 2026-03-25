@@ -20,7 +20,7 @@ const navbarConfig = {
         label: 'API specifications',
         position: 'left',
         items: [
-          { label: 'Identity Security Cloud', to: '/docs/api/v2025' },
+          { label: 'Identity Security Cloud', to: '/docs/api/v2026' },
           { label: 'IdentityIQ', to: '/docs/api/iiq' },
           { label: 'NERM', to: '/docs/api/nerm/v1' },
         ],
