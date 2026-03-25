@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 
 import { useDoc } from "@docusaurus/plugin-content-docs/client";
+import { translate } from "@docusaurus/Translate";
+import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
 import Accept from "@theme/ApiExplorer/Accept";
 import Authorization from "@theme/ApiExplorer/Authorization";
 import Body from "@theme/ApiExplorer/Body";
@@ -17,17 +19,25 @@ import {
 } from "@theme/ApiExplorer/Response/slice";
 import Server from "@theme/ApiExplorer/Server";
 import { useTypedDispatch, useTypedSelector } from "@theme/ApiItem/hooks";
-import { ParameterObject } from "docusaurus-plugin-openapi-docs/src/openapi/types";
-import { ApiItem } from "docusaurus-plugin-openapi-docs/src/types";
-import sdk from "postman-collection";
+import { OPENAPI_REQUEST } from "@theme/translationIds";
+import type { ParameterObject } from "docusaurus-plugin-openapi-docs/src/openapi/types";
+import type { ApiItem } from "docusaurus-plugin-openapi-docs/src/types";
+import type { ThemeConfig } from "docusaurus-theme-openapi-docs/src/types";
+import * as sdk from "postman-collection";
 import { FormProvider, useForm } from "react-hook-form";
 
-import makeRequest from "./makeRequest";
+import makeRequest, { RequestError, RequestErrorType } from "./makeRequest";
 
 function Request({ item }: { item: ApiItem }) {
   const postman = new sdk.Request(item.postman);
   const metadata = useDoc();
-  const { proxy, hide_send_button: hideSendButton } = metadata.frontMatter;
+  const { proxy: frontMatterProxy, hide_send_button: hideSendButton } =
+    metadata.frontMatter;
+  const { siteConfig } = useDocusaurusContext();
+  const themeConfig = siteConfig.themeConfig as ThemeConfig;
+  const requestTimeout = themeConfig.api?.requestTimeout;
+  // Frontmatter proxy (per-spec) takes precedence over theme config proxy (site-wide)
+  const proxy = frontMatterProxy ?? themeConfig.api?.proxy;
 
   const pathParams = useTypedSelector((state: any) => state.params.path);
   const queryParams = useTypedSelector((state: any) => state.params.query);
@@ -88,17 +98,93 @@ function Request({ item }: { item: ApiItem }) {
 
   const methods = useForm({ shouldFocusError: false });
 
+  const handleEventStream = async (res) => {
+    res.headers && dispatch(setHeaders(Object.fromEntries(res.headers)));
+    dispatch(setCode(res.status));
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let result = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      result += decoder.decode(value, { stream: true });
+      dispatch(setResponse(result));
+    }
+  };
+
+  const handleResponse = async (res) => {
+    dispatch(setResponse(await res.text()));
+    dispatch(setCode(res.status));
+    res.headers && dispatch(setHeaders(Object.fromEntries(res.headers)));
+  };
+
+  const getErrorMessage = (errorType: RequestErrorType): string => {
+    switch (errorType) {
+      case "timeout":
+        return translate({
+          id: OPENAPI_REQUEST.ERROR_TIMEOUT,
+          message:
+            "The request timed out waiting for the server to respond. Please try again. If the issue persists, try using a different client (e.g., curl) with a longer timeout.",
+        });
+      case "network":
+        return translate({
+          id: OPENAPI_REQUEST.ERROR_NETWORK,
+          message:
+            "Unable to reach the server. Please check your network connection and verify the server URL is correct. If the server is running, this may be a CORS issue.",
+        });
+      case "cors":
+        return translate({
+          id: OPENAPI_REQUEST.ERROR_CORS,
+          message:
+            "The request was blocked, possibly due to CORS restrictions. Ensure the server allows requests from this origin, or try using a proxy.",
+        });
+      case "unknown":
+      default:
+        return translate({
+          id: OPENAPI_REQUEST.ERROR_UNKNOWN,
+          message:
+            "An unexpected error occurred while making the request. Please try again.",
+        });
+    }
+  };
+
   const onSubmit = async (data) => {
-    dispatch(setResponse("Fetching..."));
+    dispatch(
+      setResponse(
+        translate({
+          id: OPENAPI_REQUEST.FETCHING_MESSAGE,
+          message: "Fetching...",
+        })
+      )
+    );
     try {
       await delay(1200);
-      const res = await makeRequest(postmanRequest, proxy, body);
-      dispatch(setResponse(await res.text()));
-      dispatch(setCode(res.status));
-      res.headers && dispatch(setHeaders(Object.fromEntries(res.headers)));
-    } catch (e: any) {
+      const res = await makeRequest(
+        postmanRequest,
+        proxy,
+        body,
+        requestTimeout
+      );
+      if (res.headers.get("content-type")?.includes("text/event-stream")) {
+        await handleEventStream(res);
+      } else {
+        await handleResponse(res);
+      }
+    } catch (e) {
       console.log(e);
-      dispatch(setResponse("Connection failed"));
+
+      let errorMessage: string;
+      if (e instanceof RequestError) {
+        errorMessage = getErrorMessage(e.type);
+      } else {
+        errorMessage = translate({
+          id: OPENAPI_REQUEST.CONNECTION_FAILED,
+          message: "Connection failed",
+        });
+      }
+
+      dispatch(setResponse(errorMessage));
       dispatch(clearCode());
       dispatch(clearHeaders());
     }
@@ -107,7 +193,7 @@ function Request({ item }: { item: ApiItem }) {
   const showServerOptions = serverOptions.length > 0;
   const showAcceptOptions = acceptOptions.length > 1;
   const showRequestBody = contentType !== undefined;
-  const showRequestButton = item.servers && !hideSendButton;
+  const showRequestButton = (item.servers || proxy) && !hideSendButton;
   const showAuth = authSelected !== undefined;
   const showParams = allParams.length > 0;
   const requestBodyRequired = item.requestBody?.required;
@@ -117,7 +203,8 @@ function Request({ item }: { item: ApiItem }) {
     !showAuth &&
     !showParams &&
     !showRequestBody &&
-    !showServerOptions
+    !showServerOptions &&
+    !showRequestButton
   ) {
     return null;
   }
@@ -148,20 +235,31 @@ function Request({ item }: { item: ApiItem }) {
         onSubmit={methods.handleSubmit(onSubmit)}
       >
         <div className="openapi-explorer__request-header-container">
-          <span className="openapi-explorer__request-title">Request </span>
+          <span className="openapi-explorer__request-title">
+            {translate({
+              id: OPENAPI_REQUEST.REQUEST_TITLE,
+              message: "Request",
+            })}
+          </span>
           {allDetailsExpanded ? (
             <span
               className="openapi-explorer__expand-details-btn"
               onClick={collapseAllDetails}
             >
-              Collapse all
+              {translate({
+                id: OPENAPI_REQUEST.COLLAPSE_ALL,
+                message: "Collapse all",
+              })}
             </span>
           ) : (
             <span
               className="openapi-explorer__expand-details-btn"
               onClick={expandAllDetails}
             >
-              Expand all
+              {translate({
+                id: OPENAPI_REQUEST.EXPAND_ALL,
+                message: "Expand all",
+              })}
             </span>
           )}
         </div>
@@ -178,7 +276,10 @@ function Request({ item }: { item: ApiItem }) {
                   setExpandServer(!expandServer);
                 }}
               >
-                Base URL
+                {translate({
+                  id: OPENAPI_REQUEST.BASE_URL_TITLE,
+                  message: "Base URL",
+                })}
               </summary>
               <Server />
             </details>
@@ -195,7 +296,7 @@ function Request({ item }: { item: ApiItem }) {
                   setExpandAuth(!expandAuth);
                 }}
               >
-                Auth
+                {translate({ id: OPENAPI_REQUEST.AUTH_TITLE, message: "Auth" })}
               </summary>
               <Authorization />
             </details>
@@ -214,7 +315,10 @@ function Request({ item }: { item: ApiItem }) {
                   setExpandParams(!expandParams);
                 }}
               >
-                Parameters
+                {translate({
+                  id: OPENAPI_REQUEST.PARAMETERS_TITLE,
+                  message: "Parameters",
+                })}
               </summary>
               <ParamOptions />
             </details>
@@ -231,10 +335,14 @@ function Request({ item }: { item: ApiItem }) {
                   setExpandBody(!expandBody);
                 }}
               >
-                Body
+                {translate({ id: OPENAPI_REQUEST.BODY_TITLE, message: "Body" })}
                 {requestBodyRequired && (
                   <span className="openapi-schema__required">
-                    &nbsp;required
+                    &nbsp;
+                    {translate({
+                      id: OPENAPI_REQUEST.REQUIRED_LABEL,
+                      message: "required",
+                    })}
                   </span>
                 )}
               </summary>
@@ -260,14 +368,20 @@ function Request({ item }: { item: ApiItem }) {
                   setExpandAccept(!expandAccept);
                 }}
               >
-                Accept
+                {translate({
+                  id: OPENAPI_REQUEST.ACCEPT_TITLE,
+                  message: "Accept",
+                })}
               </summary>
               <Accept />
             </details>
           )}
           {showRequestButton && item.method !== "event" && (
             <button className="openapi-explorer__request-btn" type="submit">
-              Send API Request
+              {translate({
+                id: OPENAPI_REQUEST.SEND_BUTTON,
+                message: "Send API Request",
+              })}
             </button>
           )}
         </div>

@@ -8,16 +8,17 @@ import {
 } from "@docusaurus/theme-common/internal";
 import { TabItemProps } from "@docusaurus/theme-common/lib/utils/tabsUtils";
 import useIsBrowser from "@docusaurus/useIsBrowser";
-import { Language } from "@theme/ApiExplorer/CodeSnippets";
 import clsx from "clsx";
+
+import { Language } from "../CodeSnippets/code-snippets-types";
 
 export interface Props {
   action: {
     [key: string]: React.Dispatch<any>;
   };
-  currentLanguage: Language;
+  currentLanguage?: Language;
   languageSet: Language[];
-  includeVariant: boolean;
+  includeVariant?: boolean;
 }
 
 export interface CodeTabsProps extends Props, TabProps {
@@ -37,7 +38,7 @@ function TabList({
   tabValues,
 }: CodeTabsProps & ReturnType<typeof useTabs>) {
   const tabRefs = useRef<(HTMLLIElement | null)[]>([]);
-  const tabsScrollContainerRef = useRef<any>();
+  const tabsScrollContainerRef = useRef<any>(null);
   const { blockElementScrollPositionUntilNextRender } =
     useScrollPositionBlocker();
 
@@ -87,13 +88,13 @@ function TabList({
       let newLanguage: Language;
       if (currentLanguage && includeVariant) {
         newLanguage = languageSet.filter(
-          (lang: Language) => lang.language === currentLanguage
+          (lang: Language) => lang.language === currentLanguage.language
         )[0];
         newLanguage.variant = newTabValue;
         action.setSelectedVariant(newTabValue.toLowerCase());
       } else if (currentLanguage && includeSample) {
         newLanguage = languageSet.filter(
-          (lang: Language) => lang.language === currentLanguage
+          (lang: Language) => lang.language === currentLanguage.language
         )[0];
         newLanguage.sample = newTabValue;
         action.setSelectedSample(newTabValue);
@@ -136,7 +137,6 @@ function TabList({
   };
 
   return (
-    
     <ul
       role="tablist"
       aria-orientation="horizontal"
@@ -157,7 +157,11 @@ function TabList({
           tabIndex={selectedValue === value ? 0 : -1}
           aria-selected={selectedValue === value}
           key={value}
-          ref={(tabControl) => tabRefs.current.push(tabControl)}
+          ref={(tabControl) => {
+            if (tabControl) {
+              tabRefs.current.push(tabControl);
+            }
+          }}
           onKeyDown={handleKeydown}
           onClick={handleTabChange}
           {...attributes}
@@ -210,6 +214,7 @@ function TabContent({
 function TabsComponent(props: CodeTabsProps & Props): React.JSX.Element {
   const tabs = useTabs(props);
   const { className } = props;
+
   return (
     <div
       className={clsx("tabs-container openapi-tabs__code-container", className)}

@@ -10,10 +10,10 @@ export function hashArray(arr: string[]) {
   return hash(res);
 }
 
-type Persistance = false | "localStorage" | "sessionStorage" | undefined;
+type Persistence = false | "localStorage" | "sessionStorage" | undefined;
 
-export function createStorage(persistance: Persistance): Storage {
-  if (persistance === false) {
+export function createStorage(persistence: Persistence): Storage {
+  if (persistence === false) {
     return {
       getItem: () => null,
       setItem: () => {},
@@ -24,7 +24,7 @@ export function createStorage(persistance: Persistance): Storage {
     };
   }
 
-  if (persistance === "sessionStorage") {
+  if (persistence === "sessionStorage") {
     return sessionStorage;
   }
 
