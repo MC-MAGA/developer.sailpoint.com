@@ -103,7 +103,7 @@ To access the promoted attribute data mentioned in the above section, you can us
  *
  * @param sourceIds The list of application IDs that represent the sources of the data.
  * @param attributeName  The name of the searchable account attribute. The name parameter is required.
- * @param operation The operation to use when matching, it will either be Operation.Equal OR Operation.StartsWith
+ * @param operation The operation to use when matching, it will either be Operation.Equals OR Operation.StartsWith
  * @param values The value of that searchable attribute to math.  The value parameter is required.
  *
  * @return The number of accounts that match the parameters provided.
@@ -118,7 +118,7 @@ public int attrSearchCountAccounts(List<String> sourceIds, String attributeName,
  *
  * @param sourceIds The list of application IDs that represent the sources of the data.
  * @param attributeName  The name of the searchable account attribute. The name parameter is required.
- * @param operation The operation to use when matching. It will either be Operation.Equal OR Operation.StartsWith.
+ * @param operation The operation to use when matching. It will either be Operation.Equals OR Operation.StartsWith.
  * @param values The value of that searchable attribute to math.  The value parameter is required.
  *
  * @return The name of the identity that matched the account that match the parameters provided.
@@ -367,7 +367,7 @@ class IdnRuleUtil {
      *
      * @param sourceIds The list of application IDs that represent the sources of the data.
      * @param attributeName  The name of the searchable account attribute. The name parameter is required.
-     * @param operation The operation to use when matching. It will either be Operation.Equal OR Operation.StartsWith.
+     * @param operation The operation to use when matching. It will either be Operation.Equals OR Operation.StartsWith.
      * @param values The list of values of the searchable attribute to match. The values parameter is required.
      *
      * @return The number of accounts matching the parameters provided.
@@ -382,7 +382,7 @@ class IdnRuleUtil {
      *
      * @param sourceIds The list of application IDs that represent the sources of the data
      * @param attributeName  The name of the searchable account attribute. The name parameter is required.
-     * @param operation The operation to use when matching. It will either be Operation.Equal OR Operation.StartsWith.
+     * @param operation The operation to use when matching. It will either be Operation.Equals OR Operation.StartsWith.
      * @param values The list of values of the searchable attribute to match. The values parameter is required.
      *
      * @return The name of the Identity that matched the account, matching the parameters provided.
@@ -549,7 +549,7 @@ boolean exists = idn.accountExistsByNativeIdentity(applicationName, nativeIdenti
 
 ```java
 //IdnRuleUtil is available in rules as the "idn" variable, which you can use the same way you can currently use context.
-String identityName = idn.attrSearchGetIdentityName(sourceIdsAsList, attributeName, Operation.Equal, valuesToMatchAsList);
+String identityName = idn.attrSearchGetIdentityName(sourceIdsAsList, attributeName, Operation.Equals, valuesToMatchAsList);
 ```
 
 ### Get multiple attributes from the first account retreived from a source
