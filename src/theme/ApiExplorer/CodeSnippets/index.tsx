@@ -1,45 +1,44 @@
-/* ============================================================================
- * Copyright (c) Palo Alto Networks
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- * ========================================================================== */
+import React, { useState, useEffect } from "react";
 
-import React, {useState, useEffect} from 'react';
+import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
+import ApiCodeBlock from "@theme/ApiExplorer/ApiCodeBlock";
+import buildPostmanRequest from "@theme/ApiExplorer/buildPostmanRequest";
+import CodeTabs from "@theme/ApiExplorer/CodeTabs";
+import { useTypedSelector } from "@theme/ApiItem/hooks";
+import cloneDeep from "lodash/cloneDeep";
+import codegen from "postman-code-generators";
+import * as sdk from "postman-collection";
 
-import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-import ApiCodeBlock from '@theme/ApiExplorer/ApiCodeBlock';
-import buildPostmanRequest from '@theme/ApiExplorer/buildPostmanRequest';
-import CodeTabs from '@theme/ApiExplorer/CodeTabs';
-import {useTypedSelector} from '@theme/ApiItem/hooks';
-import codegen from 'postman-code-generators';
-import sdk from 'postman-collection';
-
-import {CodeSample, Language} from './code-snippets-types';
+import { CodeSample, Language } from "./code-snippets-types";
 import {
   getCodeSampleSourceFromLanguage,
   mergeArraysbyLanguage,
   mergeCodeSampleLanguage,
   generateLanguageSet,
-} from './languages';
+} from "./languages";
 
 export const languageSet: Language[] = generateLanguageSet();
 
 export interface Props {
   postman: sdk.Request;
   codeSamples: CodeSample[];
+  maskCredentials?: boolean;
 }
 
-function CodeTab({children, hidden, className}: any): JSX.Element {
+function CodeTab({ children, hidden, className }: any): React.JSX.Element {
   return (
-    <div role="tabpanel" className={className} {...{hidden}}>
+    <div role="tabpanel" className={className} {...{ hidden }}>
       {children}
     </div>
   );
 }
 
-function CodeSnippets({postman, codeSamples}: Props) {
-  const {siteConfig} = useDocusaurusContext();
+function CodeSnippets({
+  postman,
+  codeSamples,
+  maskCredentials: propMaskCredentials,
+}: Props) {
+  const { siteConfig } = useDocusaurusContext();
 
   const contentType = useTypedSelector((state: any) => state.contentType.value);
   const accept = useTypedSelector((state: any) => state.accept.value);
@@ -52,6 +51,53 @@ function CodeSnippets({postman, codeSamples}: Props) {
   const headerParams = useTypedSelector((state: any) => state.params.header);
 
   const auth = useTypedSelector((state: any) => state.auth);
+
+  // Check if credential masking is enabled (default: true)
+  const maskCredentials = propMaskCredentials ?? true;
+
+  // Clone Auth if maskCredentials is not false
+  const cleanedAuth = maskCredentials
+    ? (() => {
+        const clonedAuth = cloneDeep(auth);
+        let placeholder: string;
+
+        function cleanCredentials(obj: any) {
+          for (const key in obj) {
+            if (typeof obj[key] === "object" && obj[key] !== null) {
+              // use name as placeholder if exists
+              const comboAuthId = Object.keys(obj).join(" and ");
+              const authOptions =
+                clonedAuth?.options?.[key] ??
+                clonedAuth?.options?.[comboAuthId];
+              placeholder = authOptions?.find((opt: any) => opt.key === key)?.name;
+              obj[key] = cleanCredentials(obj[key]);
+            } else {
+              obj[key] = `<${placeholder ?? key}>`;
+            }
+          }
+
+          return obj;
+        }
+
+        return {
+          ...clonedAuth,
+          data: cleanCredentials(clonedAuth.data),
+        };
+      })()
+    : auth;
+
+  // Create a Postman request object using cleanedAuth or original auth
+  const cleanedPostmanRequest = buildPostmanRequest(postman, {
+    queryParams,
+    pathParams,
+    cookieParams,
+    contentType,
+    accept,
+    headerParams,
+    body,
+    server,
+    auth: cleanedAuth,
+  });
 
   // User-defined languages array
   // Can override languageSet, change order of langs, override options and variants
@@ -69,13 +115,13 @@ function CodeSnippets({postman, codeSamples}: Props) {
   // Merge user-defined langs into languageSet
   const mergedLangs = mergeCodeSampleLanguage(
     mergeArraysbyLanguage(userDefinedLanguageSet, filteredLanguageSet),
-    codeSamples,
+    codeSamples
   );
 
   // Read defaultLang from localStorage
   const defaultLang: Language[] = mergedLangs.filter(
     (lang) =>
-      lang.language === localStorage.getItem('docusaurus.tab.code-samples'),
+      lang.language === localStorage.getItem("docusaurus.tab.code-samples")
   );
   const [selectedVariant, setSelectedVariant] = useState<string | undefined>();
   const [selectedSample, setSelectedSample] = useState<string | undefined>();
@@ -87,75 +133,52 @@ function CodeSnippets({postman, codeSamples}: Props) {
     // Fall back to language in localStorage or first user-defined language
     return defaultLang[0] ?? mergedLangs[0];
   });
-  const [codeText, setCodeText] = useState<string>('');
-  const [codeSampleCodeText, setCodeSampleCodeText] = useState<
-    string | (() => string)
-  >(() => getCodeSampleSourceFromLanguage(language));
+  const [codeText, setCodeText] = useState<string>("");
+  const [codeSampleCodeText, setCodeSampleCodeText] = useState<string>(() =>
+    getCodeSampleSourceFromLanguage(language)
+  );
 
   useEffect(() => {
     if (language && !!language.sample) {
       setCodeSampleCodeText(getCodeSampleSourceFromLanguage(language));
     }
 
-    if (language && !!language.options && language.language !== 'typescript') {
-      const postmanRequest = buildPostmanRequest(postman, {
-        queryParams,
-        pathParams,
-        cookieParams,
-        contentType,
-        accept,
-        headerParams,
-        body,
-        server,
-        auth,
-      });
+    if (language && !!language.options) {
       codegen.convert(
         language.language,
         language.variant,
-        postmanRequest,
+        cleanedPostmanRequest,
         language.options,
         (error: any, snippet: string) => {
           if (error) {
             return;
           }
           setCodeText(snippet);
-        },
+        }
       );
     } else if (language && !language.options) {
       const langSource = mergedLangs.filter(
-        (lang) => lang.language === language.language,
+        (lang) => lang.language === language.language
       );
 
       // Merges user-defined language with default languageSet
       // This allows users to define only the minimal properties necessary in languageTabs
       // User-defined properties should override languageSet properties
-      const mergedLanguage = {...langSource[0], ...language};
-      const postmanRequest = buildPostmanRequest(postman, {
-        queryParams,
-        pathParams,
-        cookieParams,
-        contentType,
-        accept,
-        headerParams,
-        body,
-        server,
-        auth,
-      });
-
+      const mergedLanguage = { ...langSource[0], ...language };
       codegen.convert(
         mergedLanguage.language,
         mergedLanguage.variant,
-        postmanRequest,
+        cleanedPostmanRequest,
         mergedLanguage.options,
         (error: any, snippet: string) => {
           if (error) {
             return;
           }
           setCodeText(snippet);
-        },
+        }
       );
     } else {
-      setCodeText('');
+      setCodeText("");
     }
   }, [
     accept,
@@ -168,39 +191,28 @@ function CodeSnippets({postman, codeSamples}: Props) {
     postman,
     queryParams,
     server,
-    auth,
+    cleanedPostmanRequest,
     mergedLangs,
   ]);
-  // no dependencies was intentionlly set for this particular hook. it's safe as long as if conditions are set
+  // no dependencies was intentionally set for this particular hook. it's safe as long as if conditions are set
   useEffect(function onSelectedVariantUpdate() {
     if (selectedVariant && selectedVariant !== language?.variant) {
-      const postmanRequest = buildPostmanRequest(postman, {
-        queryParams,
-        pathParams,
-        cookieParams,
-        contentType,
-        accept,
-        headerParams,
-        body,
-        server,
-        auth,
-      });
       codegen.convert(
         language.language,
         selectedVariant,
-        postmanRequest,
+        cleanedPostmanRequest,
         language.options,
         (error: any, snippet: string) => {
           if (error) {
             return;
           }
           setCodeText(snippet);
-        },
+        }
       );
     }
   });
 
-  // no dependencies was intentionlly set for this particular hook. it's safe as long as if conditions are set
+  // no dependencies was intentionally set for this particular hook. it's safe as long as if conditions are set
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(function onSelectedSampleUpdate() {
     if (
@@ -211,7 +223,7 @@ function CodeSnippets({postman, codeSamples}: Props) {
       selectedSample !== language.sample
     ) {
       const sampleIndex = language.samples.findIndex(
-        (smp) => smp === selectedSample,
+        (smp) => smp === selectedSample
       );
       setCodeSampleCodeText(language.samplesSources[sampleIndex]);
     }
@@ -233,39 +245,37 @@ function CodeSnippets({postman, codeSamples}: Props) {
         }}
         languageSet={mergedLangs}
         defaultValue={defaultLang[0]?.language ?? mergedLangs[0].language}
-        lazy>
+        lazy
+      >
         {mergedLangs.map((lang) => {
           return (
             <CodeTab
               value={lang.language}
               label={
                 <>
-                  {lang.tag !== 'sailpoint-sdk' && lang.language}
-
-                  {/* If the language has the 'sailpoint-sdk' tag, display the special badge */}
-                  {lang.tag === 'sailpoint-sdk' && (
+                  {lang.tag !== "sailpoint-sdk" && lang.language}
+                  {lang.tag === "sailpoint-sdk" && (
                     <span
                       className="sailpoint-sdk-badge"
                       style={{
-                        display: 'inline-block', // Change to inline-block for stacking
-                        fontSize: '12px', // Optional: Adjust font size for lang.language (e.g., "go")
-                        textAlign: 'center', // Ensure content is horizontally centered
-                        width: '100%', // Ensure the container takes up full width to allow centering
-                      }}>
-                      {/* Display lang.language */}
+                        display: "inline-block",
+                        fontSize: "12px",
+                        textAlign: "center",
+                        width: "100%",
+                      }}
+                    >
                       <div>{lang.language}</div>
-
-                      {/* Display the 'SailPoint SDK' badge */}
                       <div>
                         <span
                           style={{
-                            marginTop: '5px', // Space between language and tag
-                            backgroundColor: '#df61ca',
-                            color: 'white',
-                            padding: '2px 8px',
-                            borderRadius: '12px',
-                            fontSize: '8px',
-                          }}>
+                            marginTop: "5px",
+                            backgroundColor: "#df61ca",
+                            color: "white",
+                            padding: "2px 8px",
+                            borderRadius: "12px",
+                            fontSize: "8px",
+                          }}
+                        >
                           SailPoint SDK
                         </span>
                       </div>
@@ -276,24 +286,26 @@ function CodeSnippets({postman, codeSamples}: Props) {
               key={lang.language}
               attributes={{
                 className: `openapi-tabs__code-item--${lang.logoClass}`,
-              }}>
-              {/* Merged CodeTabs for both samples and variants */}
+              }}
+            >
+              {/* Combined inner tabs: SDK samples + native variants together */}
               {((lang.samples && lang.samples.length > 0) ||
                 (lang.variants && lang.variants.length > 0)) && (
                 <CodeTabs
                   className="openapi-tabs__code-container-inner"
                   action={{
                     setLanguage: setLanguage,
-                    setSelectedSample: setSelectedSample,
                     setSelectedVariant: setSelectedVariant,
+                    setSelectedSample: setSelectedSample,
                   }}
                   includeSample={true}
                   includeVariant={true}
-                  currentLanguage={lang.language}
-                  defaultValue={selectedSample || selectedVariant} // Set default value based on whichever is selected
+                  currentLanguage={lang}
+                  defaultValue={selectedSample || selectedVariant}
                   languageSet={mergedLangs}
-                  lazy>
-                  {/* Render Sample Tabs */}
+                  lazy
+                >
+                  {/* SDK sample tabs */}
                   {lang.samples &&
                     lang.samples.map((sample, index) => {
                       return (
@@ -304,51 +316,55 @@ function CodeSnippets({postman, codeSamples}: Props) {
                               ? lang.samplesLabels[index].slice(0, 3)
                               : sample
                           }
-                          key={`${lang.language}-sample-${index}`} // Unique key for each sample
+                          key={`${lang.language}-sample-${index}`}
                           attributes={{
                             className: `openapi-tabs__code-item--sample`,
-                          }}>
+                          }}
+                        >
                           <p>
                             <a
                               href={`https://developer.sailpoint.com/docs/${
                                 lang.samplesLabels
                                   ? lang.samplesLabels[index].slice(4)
-                                  : ''
-                              }`} // Add everything after the first 4 characters
+                                  : ""
+                              }`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="sample-doc-link">
+                              className="sample-doc-link"
+                            >
                               View SDK Reference
                             </a>
                           </p>
-
                           {/* @ts-ignore */}
                           <ApiCodeBlock
                             language={lang.highlight}
                             className="openapi-explorer__code-block"
-                            showLineNumbers={true}>
+                            showLineNumbers={true}
+                          >
                             {codeSampleCodeText}
                           </ApiCodeBlock>
                         </CodeTab>
                       );
                     })}
 
-                  {/* Render Variant Tabs */}
+                  {/* Native generated variant tabs */}
                   {lang.variants &&
                     lang.variants.map((variant, index) => {
                       return (
                         <CodeTab
                           value={variant.toLowerCase()}
                           label={variant.toUpperCase()}
-                          key={`${lang.language}-variant-${index}`} // Unique key for each variant
+                          key={`${lang.language}-variant-${index}`}
                           attributes={{
                             className: `openapi-tabs__code-item--variant`,
-                          }}>
+                          }}
+                        >
                           {/* @ts-ignore */}
                           <ApiCodeBlock
                             language={lang.highlight}
                             className="openapi-explorer__code-block"
-                            showLineNumbers={true}>
+                            showLineNumbers={true}
+                          >
                             {codeText}
                           </ApiCodeBlock>
                         </CodeTab>

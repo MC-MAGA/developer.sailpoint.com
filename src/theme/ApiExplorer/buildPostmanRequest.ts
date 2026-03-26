@@ -1,11 +1,11 @@
 import { AuthState, Scheme } from "@theme/ApiExplorer/Authorization/slice";
 import { Body, Content } from "@theme/ApiExplorer/Body/slice";
-import {
+import type {
   ParameterObject,
   ServerObject,
 } from "docusaurus-plugin-openapi-docs/src/openapi/types";
 import cloneDeep from "lodash/cloneDeep";
-import sdk from "postman-collection";
+import * as sdk from "postman-collection";
 
 type Param = {
   value?: string | string[];
@@ -20,11 +20,64 @@ function setQueryParams(postman: sdk.Request, queryParams: Param[]) {
         return undefined;
       }
 
+      // Handle array values
       if (Array.isArray(param.value)) {
-        return new sdk.QueryParam({
-          key: param.name,
-          value: param.value.join(","),
-        });
+        if (param.style === "spaceDelimited") {
+          return new sdk.QueryParam({
+            key: param.name,
+            value: param.value.join(" "),
+          });
+        } else if (param.style === "pipeDelimited") {
+          return new sdk.QueryParam({
+            key: param.name,
+            value: param.value.join("|"),
+          });
+        } else if (param.explode) {
+          return param.value.map(
+            (val) =>
+              new sdk.QueryParam({
+                key: param.name,
+                value: val,
+              })
+          );
+        } else {
+          return new sdk.QueryParam({
+            key: param.name,
+            value: param.value.join(","),
+          });
+        }
+      }
+
+      // Handle object values
+      if (param.style === "deepObject") {
+        const jsonResult = tryDecodeJsonParam(param.value);
+        if (jsonResult && typeof jsonResult === "object") {
+          return Object.entries(jsonResult).map(
+            ([key, val]) =>
+              new sdk.QueryParam({
+                key: `${param.name}[${key}]`,
+                value: String(val),
+              })
+          );
+        }
+      } else if (param.explode) {
+        const jsonResult = tryDecodeJsonParam(param.value);
+        if (jsonResult && typeof jsonResult === "object") {
+          return Object.entries(jsonResult).map(
+            ([key, val]) =>
+              new sdk.QueryParam({
+                key: key,
+                value: String(val),
+              })
+          );
+        } else {
+          return new sdk.QueryParam({
+            key: param.name,
+            value: Object.entries(jsonResult)
+              .map(([key, val]) => `${key},${val}`)
+              .join(","),
+          });
+        }
       }
 
       // Parameter allows empty value: "/hello?extended"
@@ -43,38 +96,112 @@ function setQueryParams(postman: sdk.Request, queryParams: Param[]) {
         value: param.value,
       });
     })
-    .filter((item): item is sdk.QueryParam => item !== undefined);
+    .flat() // Flatten the array in case of nested arrays from map
+    .filter((item) => item !== undefined);
 
   if (qp.length > 0) {
     postman.addQueryParams(qp);
   }
 }
 
-function setPathParams(postman: sdk.Request, queryParams: Param[]) {
-  const source = queryParams.map((param) => {
+function setPathParams(postman: sdk.Request, pathParams: Param[]) {
+  // Map through the path parameters
+  const source = pathParams.map((param) => {
+    if (!param.value) {
+      return undefined;
+    }
+
+    let serializedValue;
+
+    // Handle different styles
+    if (Array.isArray(param.value)) {
+      if (param.style === "label") {
+        serializedValue = `.${param.value.join(".")}`;
+      } else if (param.style === "matrix") {
+        serializedValue = `;${param.name}=${param.value.join(";")}`;
+      } else {
+        serializedValue = param.value.join(",");
+      }
+      return new sdk.Variable({
+        key: param.name,
+        value: serializedValue,
+      });
+    }
+
+    const jsonResult = tryDecodeJsonParam(param.value);
+
+    if (jsonResult && typeof jsonResult === "object") {
+      if (param.style === "matrix") {
+        serializedValue = Object.entries(jsonResult)
+          .map(([key, val]) => `;${key}=${val}`)
+          .join("");
+      } else {
+        serializedValue = Object.entries(jsonResult)
+          .map(([key, val]) => `${key}=${val}`)
+          .join(",");
+      }
+    } else {
+      serializedValue = param.value;
+    }
+
     return new sdk.Variable({
       key: param.name,
-      value: param.value || `:${param.name}`,
+      value: serializedValue,
     });
   });
-  postman.url.variables.assimilate(source, false);
+
+  postman.url.variables.assimilate(
+    source.filter((v): v is sdk.Variable => v !== undefined),
+    false
+  );
 }
 
 function buildCookie(cookieParams: Param[]) {
   const cookies = cookieParams
     .map((param) => {
-      if (param.value && !Array.isArray(param.value)) {
-        return new sdk.Cookie({
-          // TODO: Is this right?
-          path: "",
-          domain: "",
-          key: param.name,
-          value: param.value,
-        });
+      if (param.value) {
+        const jsonResult = tryDecodeJsonParam(param.value as string);
+        if (jsonResult && typeof jsonResult === "object") {
+          if (param.style === "form") {
+            // Handle form style
+            if (param.explode) {
+              // Serialize each key-value pair as a separate cookie
+              return Object.entries(jsonResult).map(
+                ([key, val]) =>
+                  new sdk.Cookie({
+                    key: key,
+                    value: String(val),
+                    domain: "",
+                    path: "",
+                  })
+              );
+            } else {
+              // Serialize the object as a single cookie with key-value pairs joined by commas
+              return new sdk.Cookie({
+                key: param.name,
+                value: Object.entries(jsonResult)
+                  .map(([key, val]) => `${key},${val}`)
+                  .join(","),
+                domain: "",
+                path: "",
+              });
+            }
+          }
+        } else {
+          // Handle scalar values
+          return new sdk.Cookie({
+            key: param.name,
+            value: String(param.value),
+            domain: "",
+            path: "",
+          });
+        }
       }
       return undefined;
     })
-    .filter((item): item is sdk.Cookie => item !== undefined);
+    .flat() // Flatten the array in case of nested arrays from map
+    .filter((item) => item !== undefined);
+
   const list = new sdk.CookieList(null, cookies);
   return list.toString();
 }
@@ -88,15 +215,56 @@ function setHeaders(
   other: { key: string; value: string }[]
 ) {
   postman.headers.clear();
+
   if (contentType) {
     postman.addHeader({ key: "Content-Type", value: contentType });
   }
+
   if (accept) {
     postman.addHeader({ key: "Accept", value: accept });
   }
+
   headerParams.forEach((param) => {
-    if (param.value && !Array.isArray(param.value)) {
-      postman.addHeader({ key: param.name, value: param.value });
+    if (param.value) {
+      const jsonResult = Array.isArray(param.value)
+        ? param.value.map(tryDecodeJsonParam)
+        : tryDecodeJsonParam(param.value);
+      if (Array.isArray(param.value)) {
+        if (param.style === "simple") {
+          if (param.explode) {
+            // Each item in the array is a separate header
+            jsonResult.forEach((val: any) => {
+              postman.addHeader({ key: param.name, value: val });
+            });
+          } else {
+            // Array values are joined by commas
+            postman.addHeader({
+              key: param.name,
+              value: param.value.join(","),
+            });
+          }
+        }
+      } else if (typeof jsonResult === "object") {
+        if (param.style === "simple") {
+          if (param.explode) {
+            // Each key-value pair in the object is a separate header
+            Object.entries(jsonResult).forEach(([key, val]) => {
+              postman.addHeader({ key: param.name, value: `${key}=${val}` });
+            });
+          } else {
+            // Object is serialized as a single header with key-value pairs joined by commas
+            postman.addHeader({
+              key: param.name,
+              value: Object.entries(jsonResult)
+                .map(([key, val]) => `${key},${val}`)
+                .join(","),
+            });
+          }
+        }
+      } else {
+        // Handle scalar values
+        postman.addHeader({ key: param.name, value: param.value });
+      }
     }
   });
 
@@ -106,6 +274,14 @@ function setHeaders(
 
   if (cookie) {
     postman.addHeader({ key: "Cookie", value: cookie });
+  }
+}
+
+function tryDecodeJsonParam(value: string): any {
+  try {
+    return JSON.parse(decodeURI(value));
+  } catch (e) {
+    return false;
   }
 }
 
@@ -130,7 +306,11 @@ function setBody(clonedPostman: sdk.Request, body: Body) {
   switch (clonedPostman.body.mode) {
     case "raw": {
       // check file even though it should already be set from above
-      if (body.type !== "raw" || body.content?.type === "file") {
+      if (
+        body.type !== "raw" ||
+        body.content?.type === "file" ||
+        body.content?.type === "file[]"
+      ) {
         clonedPostman.body = undefined;
         return;
       }
@@ -145,15 +325,23 @@ function setBody(clonedPostman: sdk.Request, body: Body) {
         clonedPostman.body.raw = `${body.content?.value}`;
         return;
       }
-      const params = Object.entries(body.content)
+      const params: sdk.FormParam[] = [];
+      Object.entries(body.content)
         .filter((entry): entry is [string, NonNullable<Content>] => !!entry[1])
-        .map(([key, content]) => {
+        .forEach(([key, content]) => {
           if (content.type === "file") {
-            return new sdk.FormParam({ key: key, ...content });
+            params.push(new sdk.FormParam({ key: key, ...content }));
+          } else if (content.type === "file[]") {
+            content.value.forEach((file) =>
+              params.push(new sdk.FormParam({ key, value: file }))
+            );
+          } else {
+            params.push(new sdk.FormParam({ key: key, value: content.value }));
           }
-          return new sdk.FormParam({ key: key, value: content.value });
         });
-      clonedPostman.body.formdata?.assimilate(params, false);
+      params.forEach((param) => {
+        clonedPostman.body?.formdata?.add(param);
+      });
       return;
     }
     case "urlencoded": {
@@ -167,7 +355,11 @@ function setBody(clonedPostman: sdk.Request, body: Body) {
       const params = Object.entries(body.content)
         .filter((entry): entry is [string, NonNullable<Content>] => !!entry[1])
         .map(([key, content]) => {
-          if (content.type !== "file" && content.value) {
+          if (
+            content.type !== "file" &&
+            content.type !== "file[]" &&
+            content.value
+          ) {
             return new sdk.QueryParam({ key: key, value: content.value });
           }
           return undefined;
@@ -224,10 +416,9 @@ function buildPostmanRequest(
     clonedPostman.url.host = [url];
   }
 
-  setQueryParams(clonedPostman, queryParams);
-  setPathParams(clonedPostman, pathParams);
+  const enhancedQueryParams = [...queryParams];
+  const enhancedCookieParams = [...cookieParams];
 
-  const cookie = buildCookie(cookieParams);
   let otherHeaders = [];
 
   let selectedAuth: Scheme[] = [];
@@ -285,23 +476,45 @@ function buildPostmanRequest(
       continue;
     }
 
-    // API Key
+    // API Key in header
     if (a.type === "apiKey" && a.in === "header") {
       const { apiKey } = auth.data[a.key];
-      if (apiKey === undefined) {
-        otherHeaders.push({
-          key: a.name,
-          value: "<API_KEY_VALUE>",
-        });
-        continue;
-      }
       otherHeaders.push({
         key: a.name,
-        value: apiKey,
+        value: apiKey || `<${a.name ?? a.type}>`,
+      });
+      continue;
+    }
+
+    // API Key in query
+    if (a.type === "apiKey" && a.in === "query") {
+      const { apiKey } = auth.data[a.key];
+      enhancedQueryParams.push({
+        name: a.name,
+        in: "query",
+        value: apiKey || `<${a.name ?? a.type}>`,
+      });
+      continue;
+    }
+
+    // API Key in cookie
+    if (a.type === "apiKey" && a.in === "cookie") {
+      const { apiKey } = auth.data[a.key];
+      enhancedCookieParams.push({
+        name: a.name,
+        in: "cookie",
+        value: apiKey || `<${a.name ?? a.type}>`,
       });
       continue;
     }
   }
+
+  // Use the enhanced params that might include API keys
+  setQueryParams(clonedPostman, enhancedQueryParams);
+  setPathParams(clonedPostman, pathParams);
+
+  // Use enhanced cookie params that might include API keys
+  const cookie = buildCookie(enhancedCookieParams);
 
   setHeaders(
     clonedPostman,

@@ -33,14 +33,13 @@ export interface Language {
   language: string;
   codeSampleLanguage: CodeSampleLanguage;
   logoClass: string;
-  variant: string | null;
-  variants: string[] | null;
+  variant: string;
+  variants: string[];
   options?: { [key: string]: boolean };
   sample?: string;
   samples?: string[];
   samplesSources?: string[];
   samplesLabels?: string[];
-  tag?: string;
 }
 
 // https://redocly.com/docs/api-reference-docs/specification-extensions/x-code-samples

@@ -1,7 +1,9 @@
 import React from "react";
 
 import Link from "@docusaurus/Link";
+import { translate } from "@docusaurus/Translate";
 import { useTypedSelector } from "@theme/ApiItem/hooks";
+import { OPENAPI_SECURITY_SCHEMES } from "@theme/translationIds";
 
 function SecuritySchemes(props: any) {
   const options = useTypedSelector((state: any) => state.auth.options);
@@ -15,6 +17,41 @@ function SecuritySchemes(props: any) {
   }
 
   const selectedAuth = options[selected];
+
+  const keyTranslations: Record<string, { id: string; message: string }> = {
+    description: {
+      id: OPENAPI_SECURITY_SCHEMES.DESCRIPTION,
+      message: "description:",
+    },
+    scheme: {
+      id: OPENAPI_SECURITY_SCHEMES.SCHEME,
+      message: "scheme:",
+    },
+    bearerFormat: {
+      id: OPENAPI_SECURITY_SCHEMES.BEARER_FORMAT,
+      message: "bearerFormat:",
+    },
+    openIdConnectUrl: {
+      id: OPENAPI_SECURITY_SCHEMES.OPEN_ID_CONNECT_URL,
+      message: "openIdConnectUrl:",
+    },
+  };
+
+  const renderRest = (rest: Record<string, any>) =>
+    Object.keys(rest).map((k) => {
+      const translation = keyTranslations[k];
+      const label = translation
+        ? translate({ id: translation.id, message: translation.message })
+        : `${k}:`;
+      return (
+        <span key={k}>
+          <strong>{label} </strong>
+          {typeof rest[k] === "object"
+            ? JSON.stringify(rest[k], null, 2)
+            : String(rest[k])}
+        </span>
+      );
+    });
   return (
     <details className="openapi-security__details" open={true}>
       <summary className="openapi-security__summary-container">
@@ -41,31 +78,37 @@ function SecuritySchemes(props: any) {
                   }}
                 >
                   <span>
-                    <strong>name:</strong>{" "}
+                    <strong>
+                      {translate({
+                        id: OPENAPI_SECURITY_SCHEMES.NAME,
+                        message: "name:",
+                      })}
+                    </strong>{" "}
                     <Link to={infoAuthPath}>{name ?? key}</Link>
                   </span>
                   <span>
-                    <strong>type: </strong>
+                    <strong>
+                      {translate({
+                        id: OPENAPI_SECURITY_SCHEMES.TYPE,
+                        message: "type:",
+                      })}
+                    </strong>{" "}
                     {type}
                   </span>
                   {scopes && scopes.length > 0 && (
                     <span>
-                      <strong>scopes: </strong>
+                      <strong>
+                        {translate({
+                          id: OPENAPI_SECURITY_SCHEMES.SCOPES,
+                          message: "scopes:",
+                        })}
+                      </strong>{" "}
                       <code>
                         {auth.scopes.length > 0 ? auth.scopes.toString() : "[]"}
                       </code>
                     </span>
                   )}
-                  {Object.keys(rest).map((k, i) => {
-                    return (
-                      <span key={k}>
-                        <strong>{k}: </strong>
-                        {typeof rest[k] === "object"
-                          ? JSON.stringify(rest[k], null, 2)
-                          : String(rest[k])}
-                      </span>
-                    );
-                  })}
+                  {renderRest(rest)}
                 </pre>
               </React.Fragment>
             );
@@ -82,31 +125,37 @@ function SecuritySchemes(props: any) {
                   }}
                 >
                   <span>
-                    <strong>name:</strong>{" "}
+                    <strong>
+                      {translate({
+                        id: OPENAPI_SECURITY_SCHEMES.NAME,
+                        message: "name:",
+                      })}
+                    </strong>{" "}
                     <Link to={infoAuthPath}>{name ?? key}</Link>
                   </span>
                   <span>
-                    <strong>type: </strong>
+                    <strong>
+                      {translate({
+                        id: OPENAPI_SECURITY_SCHEMES.TYPE,
+                        message: "type:",
+                      })}
+                    </strong>{" "}
                     {type}
                   </span>
                   {scopes && scopes.length > 0 && (
                     <span>
-                      <strong>scopes: </strong>
+                      <strong>
+                        {translate({
+                          id: OPENAPI_SECURITY_SCHEMES.SCOPES,
+                          message: "scopes:",
+                        })}
+                      </strong>{" "}
                       <code>
                         {auth.scopes.length > 0 ? auth.scopes.toString() : "[]"}
                       </code>
                     </span>
                   )}
-                  {Object.keys(rest).map((k, i) => {
-                    return (
-                      <span key={k}>
-                        <strong>{k}: </strong>
-                        {typeof rest[k] === "object"
-                          ? JSON.stringify(rest[k], null, 2)
-                          : String(rest[k])}
-                      </span>
-                    );
-                  })}
+                  {renderRest(rest)}
                 </pre>
               </React.Fragment>
             );
@@ -121,15 +170,30 @@ function SecuritySchemes(props: any) {
                 }}
               >
                 <span>
-                  <strong>name:</strong>{" "}
+                  <strong>
+                    {translate({
+                      id: OPENAPI_SECURITY_SCHEMES.NAME,
+                      message: "name:",
+                    })}
+                  </strong>{" "}
                   <Link to={infoAuthPath}>{auth.name ?? auth.key}</Link>
                 </span>
                 <span>
-                  <strong>type: </strong>
+                  <strong>
+                    {translate({
+                      id: OPENAPI_SECURITY_SCHEMES.TYPE,
+                      message: "type:",
+                    })}
+                  </strong>{" "}
                   {auth.type}
                 </span>
                 <span>
-                  <strong>in: </strong>
+                  <strong>
+                    {translate({
+                      id: OPENAPI_SECURITY_SCHEMES.IN,
+                      message: "in:",
+                    })}
+                  </strong>{" "}
                   {auth.in}
                 </span>
               </pre>
@@ -149,38 +213,44 @@ function SecuritySchemes(props: any) {
                 }}
               >
                 <span>
-                  <strong>name:</strong>{" "}
+                  <strong>
+                    {translate({
+                      id: OPENAPI_SECURITY_SCHEMES.NAME,
+                      message: "name:",
+                    })}
+                  </strong>{" "}
                   <Link to={infoAuthPath}>{name ?? key}</Link>
                 </span>
                 <span>
-                  <strong>type: </strong>
+                  <strong>
+                    {translate({
+                      id: OPENAPI_SECURITY_SCHEMES.TYPE,
+                      message: "type:",
+                    })}
+                  </strong>{" "}
                   {type}
                 </span>
                 {scopes && scopes.length > 0 && (
                   <span>
-                    <strong>scopes: </strong>
+                    <strong>
+                      {translate({
+                        id: OPENAPI_SECURITY_SCHEMES.SCOPES,
+                        message: "scopes:",
+                      })}
+                    </strong>{" "}
                     <code>
                       {auth.scopes.length > 0 ? auth.scopes.toString() : "[]"}
                     </code>
                   </span>
                 )}
-                {Object.keys(rest).map((k, i) => {
-                  return (
-                    <span key={k}>
-                      <strong>{k}: </strong>
-                      {typeof rest[k] === "object"
-                        ? JSON.stringify(rest[k], null, 2)
-                        : String(rest[k])}
-                    </span>
-                  );
-                })}
+                {renderRest(rest)}
               </pre>
             </React.Fragment>
           );
         }
 
         if (isOauth2) {
-          const { name, key, type, scopes, flows, ...rest } = auth;
+          const { scopes } = auth;
           return (
             <React.Fragment key={selected}>
               <pre
@@ -190,47 +260,59 @@ function SecuritySchemes(props: any) {
                   background: "var(--openapi-card-background-color)",
                 }}
               >
-                {props.item['security'] && props.item['security'].length > 0 && (
+                {props.item?.["security"] &&
+                  props.item["security"].length > 0 && (
                     <code>
-                      {props.item['security'].map((sec: any, index: number) => {
-                        const key = Object.keys(sec)[0];
-                        const securityScheme = props.item['securitySchemes']?.[key];
-                        return (
-                          <div key={key}>
-                            <strong>type: </strong>
-                            {securityScheme ? (
-                              <Link to={infoAuthPath}>
-                                {securityScheme['x-displayName']}
-                              </Link>
-                            ) : (
-                              <Link to={infoAuthPath}>{key}</Link> // Fallback to key if no displayName found
-                            )}
-                            {scopes && scopes.length > 0 && (
-                              <div>
-                              <span>
-                                <strong>scopes: </strong>
-                                <code>
-                                  {auth.scopes.length > 0 ? auth.scopes.join(', ') : "[]"}
-                                </code>
-                              </span>
-                              </div>
-                            )}
-                            {props.item['x-sailpoint-userLevels'] && props.item['x-sailpoint-userLevels'].length > 0 && key !== 'applicationAuth' && (
-                              <div>
-                              <span>
-                                <strong>user levels: </strong>
-                                <code>
-                                  {props.item['x-sailpoint-userLevels'].length > 0 ? props.item['x-sailpoint-userLevels'].join(', ') : "[]"}
-                                </code>
-                              </span>
-                              </div>
-                            )}
-                            {index < props.item['security'].length - 1 && (<hr></hr>) }
-                          </div>
-                        );
-                      })}
+                      {props.item["security"].map(
+                        (sec: any, index: number) => {
+                          const secKey = Object.keys(sec)[0];
+                          const securityScheme =
+                            props.item["securitySchemes"]?.[secKey];
+                          return (
+                            <div key={secKey}>
+                              <strong>type: </strong>
+                              {securityScheme ? (
+                                <Link to={infoAuthPath}>
+                                  {securityScheme["x-displayName"]}
+                                </Link>
+                              ) : (
+                                <Link to={infoAuthPath}>{secKey}</Link>
+                              )}
+                              {scopes && scopes.length > 0 && (
+                                <div>
+                                  <span>
+                                    <strong>scopes: </strong>
+                                    <code>
+                                      {scopes.length > 0
+                                        ? scopes.join(", ")
+                                        : "[]"}
+                                    </code>
+                                  </span>
+                                </div>
+                              )}
+                              {props.item["x-sailpoint-userLevels"] &&
+                                props.item["x-sailpoint-userLevels"].length >
+                                  0 &&
+                                secKey !== "applicationAuth" && (
+                                  <div>
+                                    <span>
+                                      <strong>user levels: </strong>
+                                      <code>
+                                        {props.item[
+                                          "x-sailpoint-userLevels"
+                                        ].join(", ")}
+                                      </code>
+                                    </span>
+                                  </div>
+                                )}
+                              {index <
+                                props.item["security"].length - 1 && <hr />}
+                            </div>
+                          );
+                        }
+                      )}
                     </code>
-                )}
+                  )}
               </pre>
             </React.Fragment>
           );
@@ -248,31 +330,37 @@ function SecuritySchemes(props: any) {
                 }}
               >
                 <span>
-                  <strong>name:</strong>{" "}
+                  <strong>
+                    {translate({
+                      id: OPENAPI_SECURITY_SCHEMES.NAME,
+                      message: "name:",
+                    })}
+                  </strong>{" "}
                   <Link to={infoAuthPath}>{name ?? key}</Link>
                 </span>
                 <span>
-                  <strong>type: </strong>
+                  <strong>
+                    {translate({
+                      id: OPENAPI_SECURITY_SCHEMES.TYPE,
+                      message: "type:",
+                    })}
+                  </strong>{" "}
                   {type}
                 </span>
                 {scopes && scopes.length > 0 && (
                   <span>
-                    <strong>scopes: </strong>
+                    <strong>
+                      {translate({
+                        id: OPENAPI_SECURITY_SCHEMES.SCOPES,
+                        message: "scopes:",
+                      })}
+                    </strong>{" "}
                     <code>
                       {auth.scopes.length > 0 ? auth.scopes.toString() : "[]"}
                     </code>
                   </span>
                 )}
-                {Object.keys(rest).map((k, i) => {
-                  return (
-                    <span key={k}>
-                      <strong>{k}: </strong>
-                      {typeof rest[k] === "object"
-                        ? JSON.stringify(rest[k], null, 2)
-                        : String(rest[k])}
-                    </span>
-                  );
-                })}
+                {renderRest(rest)}
               </pre>
             </React.Fragment>
           );

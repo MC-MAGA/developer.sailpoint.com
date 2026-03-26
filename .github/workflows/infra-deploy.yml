@@ -96,11 +96,8 @@ jobs:
           echo ${{ secrets.NPM_FONTAWESOME_CONFIG }} | base64 -d >> .npmrc
           export NODE_OPTIONS="--max_old_space_size=60000"
           export DOCUSAURUS_IGNORE_SSG_WARNINGS=true
-          export DOCUSAURUS_PERF_LOGGER=true
           export DOCUSAURUS_SSG_WORKER_THREAD_COUNT=10
-          export DOCUSAURUS_BUNDLER_CPU_PROFILE=true
           export DOCUSAURUS_SSG_WORKER_THREAD_RECYCLER_MAX_MEMORY=1000000000
-          export 
 
           npm ci 
           npm run gen-api-docs-all
@@ -109,7 +106,8 @@ jobs:
       # push these files to AWS
       - name: Copy files to the test website with the AWS CLI
         run: |
-          aws s3 sync ./build s3://$S3_BUCKET
+          aws configure set default.s3.max_concurrent_requests 64
+          aws s3 sync ./build "s3://$S3_BUCKET" --only-show-errors
       - name: Find Comment
         uses: peter-evans/find-comment@v3
         id: find-comment

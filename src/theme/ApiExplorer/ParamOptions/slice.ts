@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { ParameterObject } from "docusaurus-plugin-openapi-docs/src/openapi/types";
+import type { ParameterObject } from "docusaurus-plugin-openapi-docs/src/openapi/types";
 
 export type Param = ParameterObject & { value?: string[] | string };
 
@@ -12,7 +12,7 @@ export interface State {
 
 const initialState: State = {} as any;
 
-export const slice = createSlice({
+const slice = createSlice({
   name: "params",
   initialState,
   reducers: {

@@ -1,14 +1,17 @@
 import React from "react";
 
-// @ts-ignore
 import { useDoc } from "@docusaurus/plugin-content-docs/client";
 import { usePrismTheme } from "@docusaurus/theme-common";
+import { translate } from "@docusaurus/Translate";
+import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
 import ApiCodeBlock from "@theme/ApiExplorer/ApiCodeBlock";
 import { useTypedDispatch, useTypedSelector } from "@theme/ApiItem/hooks";
 import SchemaTabs from "@theme/SchemaTabs";
 import TabItem from "@theme/TabItem";
+import { OPENAPI_RESPONSE } from "@theme/translationIds";
 import clsx from "clsx";
-import { ApiItem } from "docusaurus-plugin-openapi-docs/src/types";
+import type { ApiItem } from "docusaurus-plugin-openapi-docs/src/types";
+import type { ThemeConfig } from "docusaurus-theme-openapi-docs/src/types";
 
 import { clearResponse, clearCode, clearHeaders } from "./slice";
 
@@ -34,7 +37,10 @@ function formatXml(xml: string) {
 
 function Response({ item }: { item: ApiItem }) {
   const metadata = useDoc();
+  const { siteConfig } = useDocusaurusContext();
+  const themeConfig = siteConfig.themeConfig as ThemeConfig;
   const hideSendButton = metadata.frontMatter.hide_send_button;
+  const proxy = metadata.frontMatter.proxy ?? themeConfig.api?.proxy;
   const prismTheme = usePrismTheme();
   const code = useTypedSelector((state: any) => state.response.code);
   const headers = useTypedSelector((state: any) => state.response.headers);
@@ -49,7 +55,7 @@ function Response({ item }: { item: ApiItem }) {
           ? "openapi-response__dot--success"
           : "openapi-response__dot--info");
 
-  if (!item.servers || hideSendButton) {
+  if ((!item.servers && !proxy) || hideSendButton) {
     return null;
   }
 
@@ -68,7 +74,9 @@ function Response({ item }: { item: ApiItem }) {
   return (
     <div className="openapi-explorer__response-container">
       <div className="openapi-explorer__response-title-container">
-        <span className="openapi-explorer__response-title">Response</span>
+        <span className="openapi-explorer__response-title">
+          {translate({ id: OPENAPI_RESPONSE.TITLE, message: "Response" })}
+        </span>
         <span
           className="openapi-explorer__response-clear-btn"
           onClick={() => {
@@ -77,7 +85,7 @@ function Response({ item }: { item: ApiItem }) {
             dispatch(clearHeaders());
           }}
         >
-          Clear
+          {translate({ id: OPENAPI_RESPONSE.CLEAR, message: "Clear" })}
         </span>
       </div>
       <div
@@ -111,14 +119,23 @@ function Response({ item }: { item: ApiItem }) {
               >
                 {prettyResponse || (
                   <p className="openapi-explorer__response-placeholder-message">
-                    Click the <code>Send API Request</code> button above and see
-                    the response here!
+                    {translate({
+                      id: OPENAPI_RESPONSE.PLACEHOLDER,
+                      message:
+                        "Click the <code>Send API Request</code> button above and see the response here!",
+                    })}
                   </p>
                 )}
               </ApiCodeBlock>
             </TabItem>
             {/* @ts-ignore */}
-            <TabItem label="Headers" value="headers">
+            <TabItem
+              label={translate({
+                id: OPENAPI_RESPONSE.HEADERS_TAB,
+                message: "Headers",
+              })}
+              value="headers"
+            >
               {/* @ts-ignore */}
               <ApiCodeBlock
                 className="openapi-explorer__code-block openapi-response__status-headers"
@@ -139,8 +156,11 @@ function Response({ item }: { item: ApiItem }) {
           </div>
         ) : (
           <p className="openapi-explorer__response-placeholder-message">
-            Click the <code>Send API Request</code> button above and see the
-            response here!
+            {translate({
+              id: OPENAPI_RESPONSE.PLACEHOLDER,
+              message:
+                "Click the <code>Send API Request</code> button above and see the response here!",
+            })}
           </p>
         )}
       </div>

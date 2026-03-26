@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { type JSX, useEffect, useState } from "react";
 
 import { usePrismTheme } from "@docusaurus/theme-common";
+import { translate } from "@docusaurus/Translate";
 import useIsBrowser from "@docusaurus/useIsBrowser";
 import { ErrorMessage } from "@hookform/error-message";
-import { setStringRawBody } from "@theme/ApiExplorer/Body/slice";
+import { OPENAPI_FORM } from "@theme/translationIds";
 import clsx from "clsx";
 import { Controller, useFormContext } from "react-hook-form";
 import { LiveProvider, LiveEditor, withLive } from "react-live";
@@ -44,11 +45,11 @@ function App({
   ...props
 }: any): JSX.Element {
   const prismTheme = usePrismTheme();
-  const [code, setCode] = React.useState(children);
+  const [code, setCode] = React.useState(children.replace(/\n$/, ""));
 
   useEffect(() => {
-    action(setStringRawBody(code));
-  }, [action, code]);
+    action(code);
+  }, [code]);
 
   const {
     control,
@@ -69,7 +70,7 @@ function App({
       })}
     >
       <LiveProvider
-        code={children.replace(/\n$/, "")}
+        code={code}
         transformCode={transformCode ?? ((code) => `${code};`)}
         theme={prismTheme}
         language={language}
@@ -77,7 +78,15 @@ function App({
       >
         <Controller
           control={control}
-          rules={{ required: isRequired ? "This field is required" : false }}
+          rules={{
+            required:
+              isRequired && !code
+                ? translate({
+                    id: OPENAPI_FORM.FIELD_REQUIRED,
+                    message: "This field is required",
+                  })
+                : false,
+          }}
           name="requestBody"
           render={({ field: { onChange, name } }) => (
             <LiveComponent
