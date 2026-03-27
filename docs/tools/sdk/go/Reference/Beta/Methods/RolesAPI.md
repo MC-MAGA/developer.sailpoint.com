@@ -212,6 +212,15 @@ func main() {
             },
             "type" : "IDENTITY_LIST"
           },
+          "additionalOwners" : [ {
+            "name" : "support",
+            "id" : "2c9180a46faadee4016fb4e018c20639",
+            "type" : "IDENTITY"
+          }, {
+            "name" : "support",
+            "id" : "2c9180a46faadee4016fb4e018c20639",
+            "type" : "IDENTITY"
+          } ],
           "enabled" : true,
           "revocationRequestConfig" : {
             "commentsRequired" : false,
@@ -238,7 +247,12 @@ func main() {
               "approverId" : "46c79819-a69f-49a2-becb-12c971ae66c6",
               "approverType" : "GOVERNANCE_GROUP"
             } ],
-            "denialCommentsRequired" : true
+            "denialCommentsRequired" : true,
+            "requireEndDate" : true,
+            "maxPermittedAccessDuration" : {
+              "value" : 6,
+              "timeUnit" : "MONTHS"
+            }
           },
           "accessProfiles" : [ {
             "name" : "Access Profile 2567",
@@ -739,6 +753,7 @@ The following fields are patchable:
 * description
 * enabled
 * owner
+* additionalOwners
 * accessProfiles
 * entitlements
 * membership

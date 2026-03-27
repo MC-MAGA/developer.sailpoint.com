@@ -36,7 +36,7 @@ Method | HTTP request | Description
 [**get-role-mining-session-status**](#get-role-mining-session-status) | **Get** `/role-mining-sessions/{sessionId}/status` | Get role mining session status state
 [**get-role-mining-sessions**](#get-role-mining-sessions) | **Get** `/role-mining-sessions` | Retrieves all role mining sessions
 [**get-saved-potential-roles**](#get-saved-potential-roles) | **Get** `/role-mining-potential-roles/saved` | Retrieves all saved potential roles
-[**patch-potential-role**](#patch-potential-role) | **Patch** `/role-mining-sessions/{sessionId}/potential-role-summaries/{potentialRoleId}` | Update a potential role in session
+[**patch-potential-role-session**](#patch-potential-role-session) | **Patch** `/role-mining-sessions/{sessionId}/potential-role-summaries/{potentialRoleId}` | Update potential role in session
 [**patch-role-mining-potential-role**](#patch-role-mining-potential-role) | **Patch** `/role-mining-potential-roles/{potentialRoleId}` | Update a potential role
 [**patch-role-mining-session**](#patch-role-mining-session) | **Patch** `/role-mining-sessions/{sessionId}` | Patch a role mining session
 [**update-entitlements-potential-role**](#update-entitlements-potential-role) | **Post** `/role-mining-sessions/{sessionId}/potential-roles/{potentialRoleId}/edit-entitlements` | Edit entitlements for a potential role to exclude some entitlements
@@ -1600,8 +1600,8 @@ func main() {
 
 [[Back to top]](#)
 
-## patch-potential-role
-Update a potential role in session
+## patch-potential-role-session
+Update potential role in session
 This method updates an existing potential role using the role mining session id and the potential role summary id.
 
 The following fields can be modified:
@@ -1616,7 +1616,7 @@ The following fields can be modified:
 >**NOTE: All other fields cannot be modified.**
 
 
-[API Spec](https://developer.sailpoint.com/docs/api/beta/patch-potential-role)
+[API Spec](https://developer.sailpoint.com/docs/api/beta/patch-potential-role-session)
 
 ### Path Parameters
 
@@ -1629,14 +1629,14 @@ Name | Type | Description  | Notes
 
 ### Other Parameters
 
-Other parameters are passed through a pointer to a apiPatchPotentialRoleRequest struct via the builder pattern
+Other parameters are passed through a pointer to a apiPatchPotentialRoleSessionRequest struct via the builder pattern
 
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
 
 
- **patchPotentialRoleRequestInner** | [**[]PatchPotentialRoleRequestInner**](../models/patch-potential-role-request-inner) |  | 
+ **jsonPatchOperationRoleMining** | [**[]JsonPatchOperationRoleMining**](../models/json-patch-operation-role-mining) |  | 
 
 ### Return type
 
@@ -1664,10 +1664,10 @@ import (
 func main() {
     sessionId := `8c190e67-87aa-4ed9-a90b-d9d5344523fb` // string | The role mining session id # string | The role mining session id
     potentialRoleId := `8c190e67-87aa-4ed9-a90b-d9d5344523fb` // string | The potential role summary id # string | The potential role summary id
-    patchpotentialrolerequestinner := []byte(`[{op=remove, path=/description}, {op=replace, path=/description, value=Acct I - Potential Role}, {op=remove, path=/saved}, {op=replace, path=/saved, value=false}, {op=remove, path=/name}, {op=replace, path=/name, value=Potential Role Accounting}]`) // []PatchPotentialRoleRequestInner | 
+    jsonpatchoperationrolemining := []byte(`[{op=remove, path=/description}, {op=replace, path=/description, value=Acct I - Potential Role}, {op=remove, path=/saved}, {op=replace, path=/saved, value=false}, {op=remove, path=/name}, {op=replace, path=/name, value=Potential Role Accounting}]`) // []JsonPatchOperationRoleMining | 
 
-    var patchPotentialRoleRequestInner []beta.PatchPotentialRoleRequestInner
-    if err := json.Unmarshal(patchpotentialrolerequestinner, &patchPotentialRoleRequestInner); err != nil {
+    var jsonPatchOperationRoleMining []beta.JsonPatchOperationRoleMining
+    if err := json.Unmarshal(jsonpatchoperationrolemining, &jsonPatchOperationRoleMining); err != nil {
       fmt.Println("Error:", err)
       return
     }
@@ -1675,14 +1675,14 @@ func main() {
 
     configuration := sailpoint.NewDefaultConfiguration()
     apiClient := sailpoint.NewAPIClient(configuration)
-    resp, r, err := apiClient.Beta.IAIRoleMiningAPI.PatchPotentialRole(context.Background(), sessionId, potentialRoleId).PatchPotentialRoleRequestInner(patchPotentialRoleRequestInner).Execute()
-	  //resp, r, err := apiClient.Beta.IAIRoleMiningAPI.PatchPotentialRole(context.Background(), sessionId, potentialRoleId).PatchPotentialRoleRequestInner(patchPotentialRoleRequestInner).Execute()
+    resp, r, err := apiClient.Beta.IAIRoleMiningAPI.PatchPotentialRoleSession(context.Background(), sessionId, potentialRoleId).JsonPatchOperationRoleMining(jsonPatchOperationRoleMining).Execute()
+	  //resp, r, err := apiClient.Beta.IAIRoleMiningAPI.PatchPotentialRoleSession(context.Background(), sessionId, potentialRoleId).JsonPatchOperationRoleMining(jsonPatchOperationRoleMining).Execute()
     if err != nil {
-	    fmt.Fprintf(os.Stderr, "Error when calling `IAIRoleMiningAPI.PatchPotentialRole``: %v\n", err)
+	    fmt.Fprintf(os.Stderr, "Error when calling `IAIRoleMiningAPI.PatchPotentialRoleSession``: %v\n", err)
 	    fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)
     }
-    // response from `PatchPotentialRole`: map[string]interface{}
-    fmt.Fprintf(os.Stdout, "Response from `IAIRoleMiningAPI.PatchPotentialRole`: %v\n", resp)
+    // response from `PatchPotentialRoleSession`: map[string]interface{}
+    fmt.Fprintf(os.Stdout, "Response from `IAIRoleMiningAPI.PatchPotentialRoleSession`: %v\n", resp)
 }
 ```
 
@@ -1722,7 +1722,7 @@ Other parameters are passed through a pointer to a apiPatchRoleMiningPotentialRo
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
 
- **patchPotentialRoleRequestInner** | [**[]PatchPotentialRoleRequestInner**](../models/patch-potential-role-request-inner) |  | 
+ **jsonPatchOperationRoleMining** | [**[]JsonPatchOperationRoleMining**](../models/json-patch-operation-role-mining) |  | 
 
 ### Return type
 
@@ -1749,10 +1749,10 @@ import (
 
 func main() {
     potentialRoleId := `8c190e67-87aa-4ed9-a90b-d9d5344523fb` // string | The potential role summary id # string | The potential role summary id
-    patchpotentialrolerequestinner := []byte(`[{op=remove, path=/description}, {op=replace, path=/description, value=Acct I - Potential Role}, {op=remove, path=/saved}, {op=replace, path=/saved, value=false}, {op=remove, path=/name}, {op=replace, path=/name, value=Potential Role Accounting}]`) // []PatchPotentialRoleRequestInner | 
+    jsonpatchoperationrolemining := []byte(`[{op=remove, path=/description}, {op=replace, path=/description, value=Acct I - Potential Role}, {op=remove, path=/saved}, {op=replace, path=/saved, value=false}, {op=remove, path=/name}, {op=replace, path=/name, value=Potential Role Accounting}]`) // []JsonPatchOperationRoleMining | 
 
-    var patchPotentialRoleRequestInner []beta.PatchPotentialRoleRequestInner
-    if err := json.Unmarshal(patchpotentialrolerequestinner, &patchPotentialRoleRequestInner); err != nil {
+    var jsonPatchOperationRoleMining []beta.JsonPatchOperationRoleMining
+    if err := json.Unmarshal(jsonpatchoperationrolemining, &jsonPatchOperationRoleMining); err != nil {
       fmt.Println("Error:", err)
       return
     }
@@ -1760,8 +1760,8 @@ func main() {
 
     configuration := sailpoint.NewDefaultConfiguration()
     apiClient := sailpoint.NewAPIClient(configuration)
-    resp, r, err := apiClient.Beta.IAIRoleMiningAPI.PatchRoleMiningPotentialRole(context.Background(), potentialRoleId).PatchPotentialRoleRequestInner(patchPotentialRoleRequestInner).Execute()
-	  //resp, r, err := apiClient.Beta.IAIRoleMiningAPI.PatchRoleMiningPotentialRole(context.Background(), potentialRoleId).PatchPotentialRoleRequestInner(patchPotentialRoleRequestInner).Execute()
+    resp, r, err := apiClient.Beta.IAIRoleMiningAPI.PatchRoleMiningPotentialRole(context.Background(), potentialRoleId).JsonPatchOperationRoleMining(jsonPatchOperationRoleMining).Execute()
+	  //resp, r, err := apiClient.Beta.IAIRoleMiningAPI.PatchRoleMiningPotentialRole(context.Background(), potentialRoleId).JsonPatchOperationRoleMining(jsonPatchOperationRoleMining).Execute()
     if err != nil {
 	    fmt.Fprintf(os.Stderr, "Error when calling `IAIRoleMiningAPI.PatchRoleMiningPotentialRole``: %v\n", err)
 	    fmt.Fprintf(os.Stderr, "Full HTTP response: %v\n", r)

@@ -15,10 +15,11 @@ tags: ['SDK', 'Software Development Kit', 'EmailStatusDto', 'V2024EmailStatusDto
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**Id** | Pointer to **NullableString** |  | [optional] 
-**Email** | Pointer to **string** |  | [optional] 
-**IsVerifiedByDomain** | Pointer to **bool** |  | [optional] 
-**VerificationStatus** | Pointer to **string** |  | [optional] 
+**Id** | Pointer to **NullableString** | Unique identifier for the verified sender address | [optional] 
+**Email** | Pointer to **string** | The verified sender email address | [optional] 
+**IsVerifiedByDomain** | Pointer to **bool** | Whether the sender address is verified by domain | [optional] [default to false]
+**VerificationStatus** | Pointer to **string** | The verification status of the sender address | [optional] 
+**Region** | Pointer to **NullableString** | The AWS SES region the sender address is associated with | [optional] 
 
 ## Methods
 
@@ -149,4 +150,39 @@ SetVerificationStatus sets VerificationStatus field to given value.
 
 HasVerificationStatus returns a boolean if a field has been set.
 
+### GetRegion
+
+`func (o *EmailStatusDto) GetRegion() string`
+
+GetRegion returns the Region field if non-nil, zero value otherwise.
+
+### GetRegionOk
+
+`func (o *EmailStatusDto) GetRegionOk() (*string, bool)`
+
+GetRegionOk returns a tuple with the Region field if it's non-nil, zero value otherwise
+and a boolean to check if the value has been set.
+
+### SetRegion
+
+`func (o *EmailStatusDto) SetRegion(v string)`
+
+SetRegion sets Region field to given value.
+
+### HasRegion
+
+`func (o *EmailStatusDto) HasRegion() bool`
+
+HasRegion returns a boolean if a field has been set.
+
+### SetRegionNil
+
+`func (o *EmailStatusDto) SetRegionNil(b bool)`
+
+ SetRegionNil sets the value for Region to be an explicit nil
+
+### UnsetRegion
+`func (o *EmailStatusDto) UnsetRegion()`
+
+UnsetRegion ensures that no value is present for Region, not even an explicit nil
 
