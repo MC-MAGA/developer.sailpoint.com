@@ -197,9 +197,11 @@ If an API uses cursor-based pagination and you need to resume across invocations
     cursor = page.nextCursor
     hasMore = !!cursor
 
-    // Persist cursor periodically in case the connector times out
-    dataStore.set('userCursor', cursor || '')
-    dataStore.flush()
+    // Persist cursor in case the connector times out mid-aggregation
+    if (cursor) {
+      dataStore.set('userCursor', cursor)
+      dataStore.flush()
+    }
   }
 
   // Clear cursor when aggregation completes

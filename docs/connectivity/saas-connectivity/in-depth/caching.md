@@ -121,21 +121,22 @@ async function getEntitlements(client: MyClient): Promise<Map<string, string>> {
 }
 ```
 
-### Caching pagination cursors
+### Caching API configuration or schema
 
-If an API returns a cursor for pagination and your connector processes data in batches, you can cache the cursor between invocations:
+If your connector needs to fetch API metadata or schema information that rarely changes, cache it to avoid repeated calls:
 
 ```typescript
-const cursor = connectorCache.get<string>('user-sync-cursor')
-const response = await httpClient.get('/users', {
-  params: { cursor, limit: 100 },
-})
+let schema = connectorCache.get<SchemaDefinition>('api-schema')
 
-// Store the next cursor for the subsequent invocation
-if (response.data.nextCursor) {
-  connectorCache.set('user-sync-cursor', response.data.nextCursor, 3600)
+if (!schema) {
+  schema = await httpClient.get('/api/schema').then(r => r.data)
+  connectorCache.set('api-schema', schema, 1800) // cache for 30 minutes
 }
 ```
+
+:::info
+For data that must survive container recycling — such as pagination cursors or sync timestamps — use the [Data Store](./data-store) instead of the in-memory cache.
+:::
 
 ## Reserved Keys
 
