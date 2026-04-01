@@ -13,7 +13,43 @@ tags: ['Connectivity']
 
 APIs often implement rate limits to prevent any one user from abusing the API or using an unfair amount of resources, limiting what other users of the API can do. The rate limits can manifest in many ways, but one of the most common ways is the 429 (Too Many Requests) HTTP status code. You must check the documentation of the API you are using to see whether it enforces rate limits and how it notifies you when you reach that limit. An example of rate limit documentation for Stripe’s API can be found [here](https://stripe.com/docs/rate-limits).
 
-If you are using a vendor supplied client library for the API, check the documentation for that client library to see whether it handles rate limits for you. If it does, you do not need to worry about rate limits. If it does not or if you have to implement your own library for interacting with the target API, you must handle rate limiting yourself. If you are implementing your own library for the target API, the easiest way to handle rate limits is to use the [axios-retry](https://www.npmjs.com/package/axios-retry) NPM package in conjunction with the [axios](https://www.npmjs.com/package/axios) HTTP request library. Start by including both packages in the dependencies section of your `package.json` file:
+If you are using a vendor supplied client library for the API, check the documentation for that client library to see whether it handles rate limits for you. If it does, you do not need to worry about rate limits.
+
+## Using the SDK HTTP Client (Recommended)
+
+The connector SDK includes a built-in [HTTP client](./http-client) that handles rate limiting automatically. It retries 429 responses with exponential backoff and respects the `Retry-After` header when present. No additional packages are needed:
+
+```typescript
+import { createConnectorHttpClient, ConnectorError } from ‘@sailpoint/connector-sdk’
+
+export class MyClient {
+  private httpClient
+
+  constructor(config: any) {
+    if (!config.baseUrl) {
+      throw new ConnectorError(‘baseUrl must be provided from config’)
+    }
+
+    this.httpClient = createConnectorHttpClient({
+      baseURL: config.baseUrl,
+      auth: { type: ‘apiKey’, in: ‘header’, name: ‘Api-Key’, value: config.apiKey },
+    })
+  }
+
+  async getUserEmailAddress(username: string): Promise<string> {
+    // If this call receives a 429, the SDK automatically waits and retries
+    // up to 3 times with exponential backoff
+    const response = await this.httpClient.get(`/u/${username}/emails.json`)
+    return response.data.email
+  }
+}
+```
+
+The default retry behavior handles 429, 500, 502, 503, and 504 status codes. You can customize this — see the [HTTP Client documentation](./http-client) for details on configuring retries.
+
+## Manual Approach with axios-retry
+
+If you prefer to manage the HTTP client yourself, you can use the [axios-retry](https://www.npmjs.com/package/axios-retry) NPM package in conjunction with the [axios](https://www.npmjs.com/package/axios) HTTP request library. Start by including both packages in the dependencies section of your `package.json` file:
 
 ```json
 ...
