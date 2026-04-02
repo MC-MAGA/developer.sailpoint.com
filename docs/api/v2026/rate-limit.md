@@ -39,8 +39,3 @@ your behavior matches how the gateway enforces limits.
 
 :::
 
-### Previous documentation (per access token)
-
-For reference, the documentation used to describe this default as **100 requests** per **`access_token`** per **10 seconds**
-through the API gateway. The **429 Too Many Requests** response and **Retry-After** header when you exceed a limit follow
-the same pattern as above.
