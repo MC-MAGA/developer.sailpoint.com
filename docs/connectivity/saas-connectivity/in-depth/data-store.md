@@ -122,6 +122,23 @@ if (dataStore.hasPendingChanges) {
 }
 ```
 
+### `dataStore.reload(context): Promise<void>`
+
+Reload the connector config from ISC via the command context and update the data store's baseline. Call this during long aggregations to pick up config changes that occurred mid-run — including values written by a previous `flush()` call in the same invocation.
+
+Pending changes are preserved across a reload.
+
+```typescript
+// Flush a batch, then reload so the next batch uses the updated baseline
+dataStore.set('cursor', nextCursor)
+dataStore.flush()
+await dataStore.reload(context)
+```
+
+:::info
+`flush()` also updates the local config baseline automatically, so in most cases an explicit `reload()` is only needed if the config may have changed externally — for example, if ISC or another process has updated `connectorAttributes` mid-aggregation.
+:::
+
 ## Change Detection
 
 One of the key benefits of the data store is automatic change detection. If you set a value to the same thing it already is, no patch is emitted:
@@ -205,6 +222,45 @@ If an API uses cursor-based pagination and you need to resume across invocations
   }
 
   // Clear cursor when aggregation completes
+  dataStore.delete('userCursor')
+  dataStore.flush()
+})
+```
+
+### Reloading config during long aggregations
+
+For very long aggregations, ISC may update the source config externally while the connector is running. Use `reload()` to pick up any changes and keep the data store's baseline in sync:
+
+```typescript
+.stdAccountList(async (context, input, res) => {
+  const config = await readConfig()
+  const dataStore = createConnectorDataStore(config, res)
+
+  let cursor = dataStore.get<string>('userCursor')
+  let batchCount = 0
+
+  while (true) {
+    const page = await myClient.getUsers({ cursor, limit: 100 })
+
+    for (const user of page.results) {
+      res.send({ key: { simple: { id: user.id } }, attributes: user })
+    }
+
+    if (!page.nextCursor) break
+
+    cursor = page.nextCursor
+    batchCount++
+
+    // Persist cursor after each batch
+    dataStore.set('userCursor', cursor)
+    dataStore.flush()
+
+    // Reload every 10 batches to pick up any external config changes
+    if (batchCount % 10 === 0) {
+      await dataStore.reload(context)
+    }
+  }
+
   dataStore.delete('userCursor')
   dataStore.flush()
 })

@@ -23,21 +23,19 @@ The cache is in-memory only. If the container is recycled (which happens after p
 
 ## Basic Usage
 
+The simplest way to use the cache is `fetch`, which handles the get-or-compute pattern in one call:
+
 ```typescript
 import { connectorCache } from '@sailpoint/connector-sdk'
 
 // Inside a command handler:
 async (context, input, res) => {
-  // Check the cache first
-  let users = connectorCache.get<User[]>('all-users')
-
-  if (!users) {
-    // Cache miss — fetch from the API
-    users = await myClient.getAllUsers()
-
-    // Store in cache for 5 minutes (300 seconds)
-    connectorCache.set('all-users', users, 300)
-  }
+  // Returns cached value if present, otherwise calls the factory once and stores the result
+  const users = await connectorCache.fetch<User[]>(
+    'all-users',
+    () => myClient.getAllUsers(),
+    300, // TTL: 5 minutes
+  )
 
   for (const user of users) {
     res.send(user)
@@ -45,7 +43,35 @@ async (context, input, res) => {
 }
 ```
 
+If multiple requests arrive simultaneously before the first factory call completes, only one call to `myClient.getAllUsers()` is made — all concurrent callers wait for the same result. This prevents redundant API calls during high-concurrency scenarios.
+
+You can also use `get` and `set` directly when you need more control:
+
+```typescript
+let users = connectorCache.get<User[]>('all-users')
+if (!users) {
+  users = await myClient.getAllUsers()
+  connectorCache.set('all-users', users, 300)
+}
+```
+```
+
 ## API Reference
+
+### `connectorCache.fetch<T>(key, factory, ttlSeconds?): Promise<T>`
+
+Return the cached value for `key`, or call `factory` to compute and store it. Concurrent calls for the same key are deduplicated — only one `factory` invocation runs regardless of how many callers are waiting.
+
+```typescript
+const roleList = await connectorCache.fetch(
+  'roles',
+  async () => {
+    const response = await httpClient.get('/roles')
+    return response.data
+  },
+  600, // cache for 10 minutes
+)
+```
 
 ### `connectorCache.get<T>(key): T | undefined`
 
