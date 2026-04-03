@@ -43,6 +43,10 @@ const pluginConfig = [
           to: '/ambassadors',
           from: ['/ambassador-program', '/ambassador'],
         },
+        {
+          to: '/docs/tools/ui-development-kit',
+          from: ['/docs/tools/community-toolbox', '/idn/tools/community-toolbox'],
+        },
       ],
       createRedirects(existingPath) {
         if (existingPath.startsWith('/docs')) {
