@@ -45,7 +45,7 @@ const pluginConfig = [
         },
         {
           to: '/docs/tools/ui-development-kit',
-          from: ['/docs/tools/community-toolbox'],
+          from: ['/docs/tools/community-toolbox', '/idn/tools/community-toolbox'],
         },
       ],
       createRedirects(existingPath) {
