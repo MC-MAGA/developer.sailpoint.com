@@ -5,7 +5,11 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start --port=4201",
+    "start-minified": "docusaurus start --config docusaurus.config.minified.ts --port=4202",
+    "start-extensibility": "docusaurus start --config docusaurus.config.extensibility.ts --port=4203",
     "build": "docusaurus build",
+    "build-minified": "docusaurus build --config docusaurus.config.minified.ts",
+    "build-extensibility": "docusaurus build --config docusaurus.config.extensibility.ts",
     "build:rspack:trace": "DOCUSAURUS_RSPACK_TRACE=true DOCUSAURUS_DISABLE_LAST_UPDATE=true DOCUSAURUS_EXIT_AFTER_BUNDLING=true npm run build",
     "build:profile:bundling": "samply record -- DOCUSAURUS_EXIT_AFTER_BUNDLING=true node --perf-prof --perf-basic-prof --interpreted-frames-native-stack ./node_modules/@docusaurus/core/bin/docusaurus.mjs build",
     "swizzle": "docusaurus swizzle",
