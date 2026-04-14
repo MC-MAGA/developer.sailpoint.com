@@ -30,6 +30,7 @@ The following describes in detail the different fields in the connector spec:
   - For example, the stdAccountRead command input is the StdAccountReadInput. if you select keyType as “simple,” then the StdAccountReadInput.key will be the type SimpleKey.
 
 - **commands:** The list of commands the connector supports. A full list of available commands can be found [here](../connector-commands/index.md).
+- **showDebugLoggingOption:** (Optional) A boolean that, when set to `true`, exposes a **Enable Debug Logging** toggle in the ISC source's Administrator Settings UI. When an administrator enables this toggle and selects an expiry duration, the connector will emit `debug`-level log entries in addition to the standard `info` and `error` levels. Defaults to `false` when omitted.
 - **[sourceConfigInitialValues](./connector-spec/initial-value):** Key value pair of source config item keys and the default value that should be associated with them.
 - **sourceConfig** A list of configuration items you must provide when you create a source in ISC. The order of these items is preserved in the UI.
   - **type:** This is always “menu” - it indicates a new menu for the sidebar. You can have multiple sections defined for complex connector configurations

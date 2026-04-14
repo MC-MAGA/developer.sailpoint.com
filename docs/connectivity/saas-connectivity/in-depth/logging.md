@@ -113,6 +113,72 @@ export const connector = async () => {
 
 ```
 
+## Enabling Debug Logging
+
+### Adding the option to your connector spec
+
+To expose a debug logging toggle in the ISC source configuration UI, add `"showDebugLoggingOption": true` to your `connector-spec.json`:
+
+```json
+{
+  "name": "my-connector",
+  "commands": ["std:account:list", "std:account:read", "std:test-connection"],
+  "showDebugLoggingOption": true,
+  "sourceConfig": [...]
+}
+```
+
+### Turning on debug logging as an administrator
+
+Once `showDebugLoggingOption` is enabled in the spec, an administrator can activate debug logging without redeploying the connector:
+
+1. In ISC, go to **Admin** > **Connections** > **Sources** and open the source.
+2. Click **Edit Configuration**, then open the **Administrator Settings** tab.
+3. Enable the **Enable Debug Logging** toggle.
+4. Select an expiry duration for how long debug logging should remain active.
+5. Save the configuration.
+
+After saving, the connector will emit `debug`-level log entries alongside the standard `info` and `error` levels until the expiry duration elapses.
+
+### Logging debug messages in your connector
+
+Use `logger.debug` to write messages that are only visible when debug logging is active. This keeps your production logs clean while still giving you detailed diagnostic output on demand.
+
+[index.ts](https://github.com/sailpoint-oss/airtable-example-connector/blob/main/src/index.ts)
+
+```javascript
+export const connector = async () => {
+
+...
+    const airtable = new AirtableClient(config)
+    return createConnector()
+        .stdAccountList(async (context: Context, input: undefined, res: Response<StdAccountListOutput>) => {
+            logger.debug('Starting account list fetch')
+            const accounts = await airtable.getAllAccounts()
+
+            logger.debug({count: accounts.length}, 'Fetched accounts from Airtable')
+            for (const account of accounts) {
+                logger.debug({accountId: account.id}, 'Sending account to ISC')
+                res.send(account.toStdAccountListOutput())
+            }
+        })
+
+...
+
+```
+
+When debug logging is enabled, you will see entries like the following in the output of `sail conn logs`:
+
+```bash
+$ sail conn logs tail
+
+[2022-07-14T11:23:05.100-04:00] DEBUG | connectorMessage ▶︎ {"commandType":"std:account:list","connectorName":"Airtable","message":"Starting account list fetch",...}
+[2022-07-14T11:23:05.200-04:00] DEBUG | connectorMessage ▶︎ {"commandType":"std:account:list","connectorName":"Airtable","count":3,"message":"Fetched accounts from Airtable",...}
+[2022-07-14T11:23:05.210-04:00] DEBUG | connectorMessage ▶︎ {"commandType":"std:account:list","connectorName":"Airtable","accountId":"recdUN76q9KibYMir","message":"Sending account to ISC",...}
+```
+
+When debug logging is **not** enabled, these `logger.debug` calls produce no output, so there is no performance or noise impact in normal operation.
+
 ## Configuring the SDK to Mask Sensitive Values
 
 The SDK Logger uses [Pino](https://github.com/pinojs/pino) under the hood, which has the built-in capability to search and remove JSON paths that can contain sensitive information.
