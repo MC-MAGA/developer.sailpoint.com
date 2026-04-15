@@ -13,81 +13,176 @@ tags: ['Connectivity']
 
 ## Summary
 
-The connector spec file tells ISC how the connector should interact between ISC and the custom connector. It is the glue between ISC and the connector, so understanding the different sections are key to understanding how to build a custom connectors.
+The connector spec file tells ISC how the connector should interact between ISC and the custom connector. It is the glue between ISC and the connector, so understanding the different sections are important to understand when building a custom connector.
 
-## Sample File
+For a complete example, see [connector-spec.json](https://github.com/sailpoint-oss/airtable-example-connector/blob/main/connector-spec.json).
 
-To see a sample spec file, see this link: [connector-spec.json](https://github.com/sailpoint-oss/airtable-example-connector/blob/main/connector-spec.json)
+## Top-Level Fields
 
-## Description of Fields
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | Yes | The name of the connector as it appears in ISC. Tags can be appended to this name. |
+| `keyType` | string | Yes | Either `simple` or `compound`. Determines which key type the connector expects to receive and send back for each command. For example, if `simple`, then `StdAccountReadInput.key` will be of type `SimpleKey`. |
+| `commands` | string[] | Yes | The list of commands the connector supports. See the full list of [available commands](../connector-commands/index.md). |
+| `supportsStatefulCommands` | boolean | No | Set to `true` if the connector supports stateful commands. |
+| `showDebugLoggingOption` | boolean | No | When `true`, exposes an **Enable Debug Logging** toggle in the ISC source's Administrator Settings UI. When enabled, the connector emits `debug`-level log entries in addition to `info` and `error` levels. Defaults to `false`. |
+| `sourceConfigInitialValues` | object | No | Key-value pairs of source config item keys and their default values. See [Initial Values](./connector-spec/initial-value). |
+| `sourceConfig` | object[] | Yes | A list of menus defining the configuration UI shown when creating a source in ISC. The order of items is preserved in the UI. See [sourceConfig](#sourceconfig). |
+| `accountSchema` | object | Yes | The schema for accounts in ISC populated by data from the source. See [accountSchema](#accountschema). |
+| `entitlementSchemas` | object[] | No | A list of entitlement schemas in ISC populated by data from the source. See [entitlementSchemas](#entitlementschemas). |
+| `accountCreateTemplate` | object | No | A map of identity attributes ISC passes to the connector when creating an account in the target source. See [accountCreateTemplate](#accountcreatetemplate). |
 
-The following describes in detail the different fields in the connector spec:
+---
 
-- **name:** The name of the connector as it appears in ISC. Tags can be appended to this name.
+## sourceConfig
 
-- **keyType:** Either “simple” or “compound” This determines which type of key your connector expects to receive and send back for each of the commands. This must always be indicated in your connector spec - the connector returns the correct type for each command that returns a key type.
+`sourceConfig` is an array of menu objects that define the sidebar and configuration fields shown when creating a source in ISC.
 
-  - For example, the stdAccountRead command input is the StdAccountReadInput. if you select keyType as “simple,” then the StdAccountReadInput.key will be the type SimpleKey.
+### Menu
 
-- **commands:** The list of commands the connector supports. A full list of available commands can be found [here](../connector-commands/index.md).
-- **showDebugLoggingOption:** (Optional) A boolean that, when set to `true`, exposes a **Enable Debug Logging** toggle in the ISC source's Administrator Settings UI. When an administrator enables this toggle and selects an expiry duration, the connector will emit `debug`-level log entries in addition to the standard `info` and `error` levels. Defaults to `false` when omitted.
-- **[sourceConfigInitialValues](./connector-spec/initial-value):** Key value pair of source config item keys and the default value that should be associated with them.
-- **sourceConfig** A list of configuration items you must provide when you create a source in ISC. The order of these items is preserved in the UI.
-  - **type:** This is always “menu” - it indicates a new menu for the sidebar. You can have multiple sections defined for complex connector configurations
-  - **label:** This label indicates the text that will show up on the sidebar in ISC
-  - **items:** The array of items in the menu
-    - **type:** This is always "section" - it indicates a new section on the page
-    - **sectionTitle:** The large text title that will display for the section.
-    - **sectionHelpMessage:** A description about the section that can help the user understand what it is used for and how to fill out the fields
-    - **docLinkLabel:** An optional field that is the text that displays next to documentation help link.
-    - **docLink:** The optional link that the docLinkLabel will direct to if clicked.
-    - **items:** The array of input fields for the menu item
-      - **key:** The name of the configuration item as it is referenced in code.
-      - **label:** The name of the configuration item as it appears in the UI.
-      - **required** (Optional): Set to 'false' by default. Valid values are 'true' or 'false.' You must populate required configuration items in the ISC source configuration wizard before continuing.
-      - **type:** The configuration items' types. The following types are valid:
-        - text
-        - number
-        - secret
-        - textarea
-        - secrettextarea
-        - checkbox
-        - url
-        - [radio](./connector-spec/radio)
-        - [select](./connector-spec/select)
-        - toggle
-        - [list](./connector-spec/list)
-        - [keyValue](./connector-spec/key-value)
-        - [cardList](./connector-spec/card)
-- **accountSchema:** The schema for an account in ISC populated by data from the source.
-  - **displayAttribute:** Identifies the attribute (defined below) used to map to `Account Name` in the Identity Security Cloud account schema. This should be a unique value even though it is not required because the connector will use this value to correlate accounts in ISC to accounts in the source system.
-  - **identityAttribute:** Identifies the attribute (defined below) used to map to `Account ID` in the Identity Security Cloud account schema. This must be a globally unique identifier, such as email address, employee ID, etc.
-  - **groupAttribute:** Identifies the attribute used to map accounts to entitlements. For example, a web service can define `groups` that users are members of, and the `groups` grant entitlements to each user. In this case, **groupAttribute** is “groups,” and there is also an account attribute called “groups”.
-  - **attributes:** One or more attributes that map to a user’s attribute on the target source. Each attribute defines the following:
-    - **name:** The attribute’s name as it appears in ISC.
-    - **type:** The attribute’s type. Possible values are `string`, `boolean`, `long`, and `int`.
-    - **description:** A helpful description of the attribute. This is useful to source owners when they are trying to understand the account schema.
-    - **managed:** This indicates whether the entitlements are manageable through ISC or read-only.
-    - **entitlement:** This boolean indicates whether the attribute is an entitlement. Entitlements give identities privileges on the source system. Use this indication to determine which fields to synchronize with accounts in ISC for tasks such as separation of duties and role assignment. The boolean indicates whether the attribute is an entitlement.
-    - **multi:** This indicates entitlements that are stored in an array format. This one field can store multiple entitlements for a single account.
-- **entitlementSchemas:** A list of entitlement schemas in ISC populated by data from the source.
-  - **type:** The entitlement’s type. Currently, only `group` is supported.
-  - **displayAttribute:** The entitlement attribute’s name. This can be the `name` or another human friendly identifier for a group.
-  - **identityAttribute:** The entitlement attribute’s unique ID. This can be the `id` or another unique key for a group.
-  - **attributes:** The entitlement’s list of attributes. This list of attributes is an example: `id`, `name`, and `description`.
-    - **name:** The name of the attribute as it appears in ISC.
-    - **type:** The attribute’s type. Possible values are `string`, `boolean`, `long`, and `int`.
-    - **description:** A helpful description the attribute. This is useful to source owners when they are trying to understand the account schema.
-- **accountCreateTemplate:** A map of identity attributes ISC will pass to the connector to create an account in the target source.
-  - **key:** The unique identifier of the attribute. This is also the name that is presented in the Create Profile screen in ISC.
-  - **label:** A friendly name for presentation purposes.
-  - **type:** The attribute’s type. Possible values are `string`, `boolean`, `long`, and `int`.
-  - **initialValue (Optional):** Use this to specify identitAttribute mapping, generator or default values.
-    - **type:** The initial value type. Possible values are `identityAttribute`, `generator`, `static`.
-    - **attributes:** Attributes change depending on the type selected.
-      - **name:** Use this to identify the mapping for identityAttribute type, or the generator to use (`Create Password`, `Create Unique Account ID`).
-      - **value:** Use this as the default value for the static type.
-      - **maxSize:** Use this for the Create Unique Account ID generator type. This value specifies the maximum size of the username to be generated.
-      - **maxUniqueChecks:** Use this for the Create Unique Account ID generator type. This value specifies the maximum retries in case a unique ID is not found with the first random generated user.
-      - **template:** Use this for the Create Unique Account ID generator type. This value specifies the template used for generation. Example: `"$(firstname).$(lastname)$(uniqueCounter)"`.
-    - **required (Optional):** Determines whether the account create operation requires this attribute. It defaults to `false`. If it is `true` and Identity Security Cloud encounters an identity missing this attribute, ISC does not send the account to the connector for account creation.
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `type` | string | Yes | Always `"menu"`. Indicates a new sidebar section. Multiple menus can be defined for complex configurations. |
+| `label` | string | Yes | The text displayed on the sidebar in ISC. |
+| `items` | [Section](#section)[] | Yes | An array of section objects displayed within this menu. |
+
+### Section
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `type` | string | Yes | Always `"section"`. |
+| `sectionTitle` | string | Yes | The large text title displayed for the section. |
+| `sectionHelpMessage` | string | No | A description to help users understand the section and how to fill out its fields. |
+| `docLinkLabel` | string | No | The text displayed next to the documentation help link. |
+| `docLink` | string | No | The URL the `docLinkLabel` directs to when clicked. |
+| `items` | [Config Item](#config-item)[] | Yes | An array of input field objects within the section. |
+
+### Config Item
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `key` | string | Yes | The name of the configuration item as referenced in code. |
+| `label` | string | Yes | The name of the configuration item as displayed in the UI. |
+| `type` | string | Yes | The input type. See [valid types](#valid-type-values) below. |
+| `required` | boolean | No | Whether the field must be populated before continuing. Defaults to `false`. |
+| `parentKey` | string | No | The `key` of another field this field depends on. The field is hidden until the parent field has the expected value. |
+| `parentValue` | string | No | The value `parentKey` must have for this field to become visible. |
+| `placeholder` | string | No | Placeholder text shown inside the input field. |
+| `helpKey` | string | No | Help text shown alongside the input field. |
+
+#### Valid `type` values
+
+| Type | Description |
+|---|---|
+| `text` | Single-line text input |
+| `number` | Numeric input |
+| `secret` | Masked text input |
+| `textarea` | Multi-line text input |
+| `secrettextarea` | Masked multi-line text input |
+| `checkbox` | Boolean checkbox |
+| `url` | URL input |
+| `toggle` | Boolean toggle |
+| [`radio`](./connector-spec/radio) | Radio button group with optional field dependencies |
+| [`select`](./connector-spec/select) | Dropdown selector with optional field dependencies |
+| [`list`](./connector-spec/list) | Multi-item list input |
+| [`keyValue`](./connector-spec/key-value) | Key-value pair input |
+| [`cardList`](./connector-spec/card) | Dynamic card-based input with add/copy/delete actions |
+
+---
+
+## accountSchema
+
+Defines the schema for accounts in ISC populated by data from the source.
+
+### accountSchema Fields
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `displayAttribute` | string | Yes | The attribute used to map to `Account Name` in ISC. Should be unique so ISC can correlate accounts between ISC and the source. |
+| `identityAttribute` | string | Yes | The attribute used to map to `Account ID` in ISC. Must be a globally unique identifier (e.g., email address, employee ID). |
+| `groupAttribute` | string | No | The attribute used to map accounts to entitlements (e.g., `"groups"`). |
+| `attributes` | [Account Attribute](#account-attribute)[] | Yes | One or more attributes mapping to user attributes on the target source. |
+
+### Account Attribute
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | Yes | The attribute's name as it appears in ISC. |
+| `type` | string | Yes | The attribute's data type. Valid values: `string`, `boolean`, `long`, `int`. |
+| `description` | string | No | A helpful description of the attribute, useful to source owners reviewing the account schema. |
+| `entitlement` | boolean | No | Whether this attribute is an entitlement. Entitlements grant identities privileges on the source system. |
+| `managed` | boolean | No | Whether the entitlements are manageable through ISC (`true`) or read-only (`false`). |
+| `multi` | boolean | No | Whether this attribute stores multiple entitlements in an array format. |
+
+---
+
+## entitlementSchemas
+
+An array of entitlement schema objects defining the entitlement types available from the source.
+
+### Entitlement Schema
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `type` | string | Yes | The entitlement type. Currently only `"group"` is supported. |
+| `displayAttribute` | string | Yes | The attribute used as the human-friendly display name for the entitlement (e.g., `name`). |
+| `identityAttribute` | string | Yes | The attribute used as the unique identifier for the entitlement (e.g., `id`). |
+| `attributes` | [Entitlement Attribute](#entitlement-attribute)[] | Yes | The list of attributes on the entitlement schema. |
+
+### Entitlement Attribute
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | Yes | The attribute's name as it appears in ISC. |
+| `type` | string | Yes | The attribute's data type. Valid values: `string`, `boolean`, `long`, `int`. |
+| `description` | string | No | A helpful description of the attribute, useful to source owners reviewing the entitlement schema. |
+
+---
+
+## accountCreateTemplate
+
+Maps identity attributes ISC will pass to the connector when creating an account in the target source.
+
+### accountCreateTemplate Fields
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `fields` | [Create Template Field](#create-template-field)[] | Yes | An array of field definitions for account creation. |
+
+### Create Template Field
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `key` | string | Yes | The unique identifier for the attribute. Also the name shown in the Create Profile screen in ISC. |
+| `label` | string | Yes | A friendly display name for the attribute. |
+| `type` | string | Yes | The attribute's data type. Valid values: `string`, `boolean`, `long`, `int`. |
+| `required` | boolean | No | Whether this attribute is required for account creation. If `true` and ISC encounters an identity missing this attribute, the account will not be sent to the connector for creation. Defaults to `false`. |
+| `initialValue` | [Initial Value](#initial-value) | No | Specifies a default, identity-mapped, or generated value for the attribute. |
+
+### Initial Value
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `type` | string | Yes | The value source type. Valid values: `identityAttribute`, `generator`, `static`. |
+| `attributes` | object | Yes | Attributes specific to the chosen type. See the tables below. |
+
+#### `identityAttribute` attributes
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | Yes | The identity attribute to map from (e.g., `"email"`, `"uid"`). |
+
+#### `generator` attributes
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | Yes | The generator to use. Valid values: `"Create Password"`, `"Create Unique Account ID"`. |
+| `maxSize` | integer | No | (`Create Unique Account ID` only) Maximum length of the generated username. |
+| `maxUniqueChecks` | integer | No | (`Create Unique Account ID` only) Maximum number of retries if a unique ID is not generated on the first attempt. |
+| `template` | string | No | (`Create Unique Account ID` only) Template used for generation (e.g., `"$(firstname).$(lastname)$(uniqueCounter)"`). |
+
+#### `static` attributes
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `value` | string | Yes | The static default value to use. |
