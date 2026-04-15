@@ -191,6 +191,104 @@ The state that you send using the `saveState` command MUST be a json object, and
 })
 ```
 
+## Permissions
+
+Entitlements can include a `permissions` array in their output. Each permission object describes a specific access right that the entitlement grants on a particular target resource. ISC uses this information to give administrators more visibility into what an entitlement actually allows.
+
+### Permission Object Structure
+
+Each entry in the `permissions` array has the following fields:
+
+| Field        | Type   | Required | Description                                                                 |
+| :----------- | :----- | :------: | :-------------------------------------------------------------------------- |
+| `target`     | string | Yes      | The resource or scope the permission applies to (e.g., `"SYSADMIN"`)        |
+| `rights`     | string | Yes      | Comma-separated list of rights granted on the target (e.g., `"read,write"`) |
+| `annotation` | string | No       | Optional human-readable description of the permission                       |
+
+### Enabling Permissions in the Schema
+
+To tell ISC that your connector supports permissions, set `includePermissions: true` in the entitlement schema in [connector-spec.json](https://github.com/sailpoint-oss/airtable-example-connector/blob/main/connector-spec.json):
+
+```javascript
+"entitlementSchemas": [
+  {
+    "type": "group",
+    "displayAttribute": "name",
+    "identityAttribute": "id",
+    "includePermissions": true,
+    "attributes": [
+      {
+        "name": "id",
+        "type": "string",
+        "description": "Unique ID of the group"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "description": "The display name of the group"
+      }
+    ]
+  }
+]
+```
+
+When `includePermissions` is `true` in the schema, ISC passes `input.schema.includePermissions = true` in the `StdEntitlementListInput`. Your connector should check this flag before fetching and returning permissions, since retrieving permissions may require additional API calls.
+
+### Implementation
+
+```javascript
+.stdEntitlementList(async (context: Context, input: StdEntitlementListInput, res: Response<StdEntitlementListOutput>) => {
+    const groups = await mySource.getAllGroups()
+
+    for (const group of groups) {
+        const entitlement: StdEntitlementListOutput = {
+            key: SimpleKey(group.id),
+            type: 'group',
+            attributes: {
+                id: group.id,
+                name: group.name
+            }
+        }
+
+        // Only fetch and include permissions if ISC requested them
+        if (input.schema?.includePermissions) {
+            const perms = await mySource.getPermissionsForGroup(group.id)
+            entitlement.permissions = perms.map(p => ({
+                target: p.targetResource,
+                rights: p.rights.join(','),
+                annotation: p.description  // optional
+            }))
+        }
+
+        res.send(entitlement)
+    }
+})
+```
+
+The output for an entitlement with permissions looks like this:
+
+```javascript
+{
+    "key": { "simple": { "id": "administrator" } },
+    "type": "group",
+    "attributes": {
+        "id": "administrator",
+        "name": "Administrator"
+    },
+    "permissions": [
+        {
+            "target": "SYSADMIN",
+            "rights": "useAccounts,retrieveAccounts"
+        },
+        {
+            "target": "REPORTS",
+            "rights": "read",
+            "annotation": "Read-only access to all reports"
+        }
+    ]
+}
+```
+
 ## Aggregation Filtering
 
 Filter resource objects on a source during an entitlement aggregation process. In order to implement, there are a few things that need to be configured.
