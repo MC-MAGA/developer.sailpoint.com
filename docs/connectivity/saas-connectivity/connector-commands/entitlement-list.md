@@ -47,8 +47,10 @@ tags: ['Connectivity', 'Connector Command']
         "name": "Administrator"
     },
     "permissions": [
-        "target": "SYSADMIN",
-        "rights": "useAccounts,retrieveAccounts"
+        {
+            "target": "SYSADMIN",
+            "rights": "useAccounts,retrieveAccounts"
+        }
     ]
 }
 ```

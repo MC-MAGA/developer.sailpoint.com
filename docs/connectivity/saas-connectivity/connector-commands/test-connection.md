@@ -33,43 +33,77 @@ Use ‘Test Connection’ in the ISC UI after an admin has finished entering con
 
 ## Implementation
 
-In [index.ts](https://github.com/sailpoint-oss/airtable-example-connector/blob/main/src/index.ts), add the test connection function handler to your connector. Within this function, send a simple request to your web service to ensure the connection works. The web service this connector targets has a JavaScript SDK, so define your own function like the following example to test the connection:
+### Validating configuration on startup
 
-```javascript
+Before making any API calls, validate that all required configuration properties are present. Throw an `InvalidConfigurationError` (not a generic `ConnectorError`) so ISC surfaces a clear message to the administrator rather than a generic failure. Do this in your client class constructor:
+
+```typescript
+import { ConnectorError, createConnectorHttpClient } from '@sailpoint/connector-sdk'
+
+export class MyClient {
+    private httpClient
+
+    constructor(config: any) {
+        if (!config.baseUrl) {
+            throw new ConnectorError('baseUrl must be provided from config')
+        }
+        if (!config.apiToken) {
+            throw new ConnectorError('apiToken must be provided from config')
+        }
+
+        this.httpClient = createConnectorHttpClient({
+            baseURL: config.baseUrl,
+            auth: { type: 'bearer', token: config.apiToken },
+        })
+    }
+
+    async testConnection(): Promise<void> {
+        // Call a lightweight endpoint — a health check or a low-cost GET
+        await this.httpClient.get('/users?limit=1')
+    }
+}
+```
+
+### Registering the handler
+
+In [index.ts](https://github.com/sailpoint-oss/airtable-example-connector/blob/main/src/index.ts), register the test connection handler. The handler calls a lightweight API endpoint to confirm that credentials are valid and the source is reachable:
+
+```typescript
 export const connector = async () => {
-
-    // Get connector source config
     const config = await readConfig()
-
-    // Use the vendor SDK, or implement own client as necessary, to initialize a client
-    const airtable = new AirtableClient(config)
+    const myClient = new MyClient(config)
 
     return createConnector()
         .stdTestConnection(async (context: Context, input: undefined, res: Response<StdTestConnectionOutput>) => {
-            res.send(await airtable.testConnection())
+            await myClient.testConnection()
+            res.send({})
         })
-        ...
         ...
 }
 ```
 
-To implement the `testConnection()` function, use the following function created in the web service client code, [airtable.ts](https://github.com/sailpoint-oss/airtable-example-connector/blob/main/src/airtable.ts).
+### Choosing a test endpoint
+
+Pick the cheapest available API call:
+
+1. **A dedicated health/ping endpoint** — many APIs expose `/health` or `/ping`. Prefer these because they have no side effects and minimal cost.
+2. **A low-cost read endpoint** — if no health endpoint exists, use a read that returns minimal data (e.g., `GET /users?limit=1`). You discard the response; you only care that the call succeeds.
+3. **Avoid write endpoints** — never use a POST, PUT, PATCH, or DELETE for the test connection, as these have side effects.
+
+### Using the Airtable example connector
+
+The Airtable example connector implements `testConnection()` by listing one page of users using its vendor SDK:
 
 ```javascript
- /**
-     * Test connection by listing users from the Airtable instance.
-     * This will make sure the apiKey has the correct access.
-     * @returns empty struct if response is 2XX
-     */
-    async testConnection(): Promise<any> {
-        return this.airTableBase('Users').select({
-            view: 'Grid view'
-        }).firstPage().then(records => {
-            return {}
-        }).catch(err => {
-            throw new ConnectorError('unable to connect')
-        })
-    }
+async testConnection(): Promise<any> {
+    return this.airTableBase('Users').select({
+        view: 'Grid view'
+    }).firstPage().then(records => {
+        return {}
+    }).catch(err => {
+        throw new ConnectorError('unable to connect')
+    })
+}
 ```
 
-This function calls an endpoint on the target web service to list all users. If the call is successful, the web service returns an empty object, which is okay because you do not need to do anything with the data. Your only goal is to ensure that you can make API calls with the provided configuration.
+If the call succeeds, the connector returns an empty object. The result data is discarded — the only goal is confirming that the API credentials and base URL are correct.

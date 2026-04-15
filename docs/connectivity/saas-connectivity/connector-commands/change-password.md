@@ -39,15 +39,48 @@ The change password command is triggered in ISC when a user changes their passwo
 
 To use this command, you must specify this value in the `commands` array: `std:change-password`
 
-## The Provisioning Plan
+## Implementation
 
-The change password command sends the password change event to your connector whenever a user changes their password through the Password Manager. Handling this even is as simple as implementing a method on the source system that updates a users password
+The `input` object contains three relevant fields:
 
-```javascript
+| Field | Description |
+|---|---|
+| `input.key` | The account's key as stored in ISC. Use `input.key.simple?.id` to extract the native account ID. |
+| `input.identity` | The account's identity string (usually the same as the key ID). |
+| `input.password` | The new plaintext password to set on the source system. |
+
+The change password command sends the password change event to your connector whenever a user changes their password through the Password Manager. Pass the new password directly to your source API:
+
+```typescript
+import {
+    ConnectorError,
+    ConnectorErrorType,
+    Context,
+    Response,
+    StdChangePasswordInput,
+    StdChangePasswordOutput,
+} from '@sailpoint/connector-sdk'
+
 .stdChangePassword(async (context: Context, input: StdChangePasswordInput, res: Response<StdChangePasswordOutput>) => {
-    res.send(await myClient.changePassword(input.identity))
+    const id = input.key.simple?.id ?? input.identity
+
+    // Confirm the account exists before attempting the password change
+    const account = await myClient.getAccount(id)
+    if (!account) {
+        throw new ConnectorError('Account not found', ConnectorErrorType.NotFound)
+    }
+
+    // Send the new password to the source system
+    await myClient.updatePassword(id, input.password)
+
+    // Change password returns an empty object on success
+    res.send({})
 })
 ```
+
+:::caution
+The password in `input.password` is the new plaintext password that has already been validated against the source's password policy by ISC. Do not perform additional policy validation in your connector — pass it directly to the source API.
+:::
 
 ## Testing in Identity Security Cloud
 

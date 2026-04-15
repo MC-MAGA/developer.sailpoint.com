@@ -34,7 +34,7 @@ tags: ['Connectivity', 'Connector Command']
             "id": "john.doe"
         }
     },
-    "disabled": false,
+    "disabled": true,
     "locked": false,
     "attributes": {
         "id": "john.doe",
@@ -58,7 +58,52 @@ Disabling accounts is generally preferred if the source supports account disabli
 
 To use this command, you must specify this value in the `commands` array: `std:account:disable`
 
-Account disable is similar to implementing the account update command. If you have implemented your source call to modify any of the values on your source, then you can use the same method to implement the command. The following code implements disable:
+:::caution Important
+Although SaaS Connectivity supports a separate `std:account:delete` command, ISC **never** sends it automatically. The `std:account:disable` command is the only command ISC sends during normal leaver lifecycle events. If your organization's policy is to delete accounts on offboarding rather than disable them, implement the delete logic inside your `account disable` handler.
+:::
+
+## Implementation
+
+Account disable is similar to the account update command. After disabling the account, return the updated account with `disabled: true` so ISC reflects the new state.
+
+```typescript
+import {
+    ConnectorError,
+    ConnectorErrorType,
+    Context,
+    Response,
+    SimpleKey,
+    StdAccountDisableInput,
+    StdAccountDisableOutput,
+} from '@sailpoint/connector-sdk'
+
+.stdAccountDisable(async (context: Context, input: StdAccountDisableInput, res: Response<StdAccountDisableOutput>) => {
+    const id = input.key.simple?.id ?? input.identity
+
+    const account = await myClient.getAccount(id)
+    if (!account) {
+        throw new ConnectorError('Account not found', ConnectorErrorType.NotFound)
+    }
+
+    // Call the source API to disable the account.
+    // Exact approach depends on the API: a dedicated endpoint, or a PATCH to set an active/status field.
+    const updated = await myClient.disableAccount(id)
+
+    res.send({
+        key: SimpleKey(updated.id),
+        disabled: true,
+        locked: updated.locked,
+        attributes: {
+            id: updated.id,
+            displayName: updated.displayName,
+            email: updated.email,
+            groups: updated.groups,
+        },
+    })
+})
+```
+
+The following code from the Airtable example connector shows an equivalent pattern:
 
 ```javascript
 .stdAccountDisable(async (context: Context, input: StdAccountDisableInput, res: Response<StdAccountDisableOutput>) => {
@@ -71,5 +116,4 @@ Account disable is similar to implementing the account update command. If you ha
     account = await airtable.changeAccount(account, change)
     res.send(account.toStdAccountDisableOutput())
 })
-
 ```

@@ -54,10 +54,50 @@ You typically invoke the `account enable` command during the joiner, mover, leav
 
 To use this command, you must specify this value in the `commands` array: `std:account:enable`
 
-Implementing `account enable` is similar to implementing the `account update` command. If you have implemented your source call to modify any of the values on your source, then you can use the same method to implement the command. The following code implements enable:
+## Implementation
+
+Implementing account enable is similar to implementing the account update command. Most source APIs expose either a dedicated enable endpoint or accept a status field via PATCH/PUT. After enabling the account, return the updated account object so ISC reflects the new `disabled: false` state.
+
+```typescript
+import {
+    ConnectorError,
+    ConnectorErrorType,
+    Context,
+    Response,
+    SimpleKey,
+    StdAccountEnableInput,
+    StdAccountEnableOutput,
+} from '@sailpoint/connector-sdk'
+
+.stdAccountEnable(async (context: Context, input: StdAccountEnableInput, res: Response<StdAccountEnableOutput>) => {
+    const id = input.key.simple?.id ?? input.identity
+
+    const account = await myClient.getAccount(id)
+    if (!account) {
+        throw new ConnectorError('Account not found', ConnectorErrorType.NotFound)
+    }
+
+    // Call the source API to enable the account.
+    // Exact approach depends on the API: a dedicated endpoint, or a PATCH to set an active/status field.
+    const updated = await myClient.enableAccount(id)
+
+    res.send({
+        key: SimpleKey(updated.id),
+        disabled: false,
+        locked: updated.locked,
+        attributes: {
+            id: updated.id,
+            displayName: updated.displayName,
+            email: updated.email,
+            groups: updated.groups,
+        },
+    })
+})
+```
+
+The following code from the Airtable example connector shows an equivalent pattern using the `AttributeChange` helper:
 
 ```javascript
-
 .stdAccountEnable(async (context: Context, input: StdAccountEnableInput, res: Response<StdAccountEnableOutput>) => {
     let account = await airtable.getAccount(input.key)
     const change: AttributeChange = {

@@ -99,6 +99,83 @@ The following example payload tells the connector to perform the following updat
 
 After the connector applies the operations defined in the input payload, the connector must respond to ISC with the changes to the account so ISC can update the identity accordingly. If an account update operation results in no changes to the account, the connector responds with an empty object `{}`. If the update operation results in one or more changes to the account, the connector responds with the complete account as it exists in the source, just like an account read response. ISC can parse the response and apply the differences accordingly.
 
+## Implementation
+
+The following example shows how to implement the account update handler. The core logic is iterating through each change operation and applying it to the account on the source system. Always read the current account state first so that `Add` and `Remove` operations have the existing values to work with.
+
+```typescript
+import {
+    AttributeChangeOp,
+    ConnectorError,
+    ConnectorErrorType,
+    Context,
+    Response,
+    SimpleKey,
+    StdAccountUpdateInput,
+    StdAccountUpdateOutput,
+} from '@sailpoint/connector-sdk'
+
+.stdAccountUpdate(async (context: Context, input: StdAccountUpdateInput, res: Response<StdAccountUpdateOutput>) => {
+    // Fetch current state so Add/Remove operations have existing values to work with
+    const current = await myClient.getAccount(input.identity)
+    if (!current) {
+        throw new ConnectorError('Account not found', ConnectorErrorType.NotFound)
+    }
+
+    // Build the update payload from each change operation
+    const updates: Record<string, any> = {}
+
+    for (const change of input.changes) {
+        if (change.op === AttributeChangeOp.Set) {
+            // Overwrite the attribute entirely with the new value
+            updates[change.attribute] = change.value
+
+        } else if (change.op === AttributeChangeOp.Add) {
+            // Add one or more values to a multi-valued attribute.
+            // ISC sends a single string when one value is added, or an array when multiple are added.
+            const valuesToAdd = Array.isArray(change.value) ? change.value : [change.value]
+            const existing: string[] = Array.isArray(current[change.attribute])
+                ? current[change.attribute]
+                : []
+            // Use Set to avoid duplicates
+            updates[change.attribute] = [...new Set([...existing, ...valuesToAdd])]
+
+        } else if (change.op === AttributeChangeOp.Remove) {
+            // Remove one or more values from a multi-valued attribute.
+            // For a single-valued attribute, set the value to null.
+            const valuesToRemove = Array.isArray(change.value) ? change.value : [change.value]
+            if (Array.isArray(current[change.attribute])) {
+                updates[change.attribute] = current[change.attribute].filter(
+                    (v: string) => !valuesToRemove.includes(v)
+                )
+            } else {
+                updates[change.attribute] = null
+            }
+        }
+    }
+
+    // Send the changes to the source system
+    const updated = await myClient.updateAccount(input.identity, updates)
+
+    // Return the updated account so ISC reflects the new state
+    res.send({
+        key: SimpleKey(updated.id),
+        disabled: !updated.active,
+        locked: updated.locked,
+        attributes: {
+            id: updated.id,
+            displayName: updated.displayName,
+            email: updated.email,
+            groups: updated.groups,
+        },
+    })
+})
+```
+
+:::info
+Check whether your source API accepts a partial update (PATCH with only changed fields) or requires the full object (PUT). If the API uses PUT, you must merge the `updates` payload into the full current account object before sending, otherwise unchanged fields will be overwritten with empty values.
+:::
+
 ## Testing in Identity Security Cloud
 
 You can test the account update command the way you test the [Account Create](./account-create.md) command. Follow the steps in “Testing in Identity Security Cloud” from “Account Create” to set up an access profile and role. Be sure to run the aggregation so the account(s) are created in the target source. Once the account(s) are created in the target source, modify the access profile to grant an additional entitlement. Return to the role and click the ‘Update’ button in the upper right corner. Doing so triggers the account update command because the accounts are already created in the target source. Once the update is complete, ensure the account(s) have the additional entitlement.

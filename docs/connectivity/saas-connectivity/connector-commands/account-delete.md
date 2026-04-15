@@ -36,13 +36,55 @@ tags: ['Connectivity', 'Connector Command']
 
 ## Description
 
-The account delete command sends one attribute from ISC, the identity to delete. This can be passed to your connector to delete the account from the source system.
+The account delete command sends the account's key from ISC, which your connector uses to permanently remove the account from the source system.
 
-Enable account delete in ISC through a BeforeProvisioning rule. The connector honors whichever operation the provisioning plan sends. For more information, see the [documentation](https://community.sailpoint.com/t5/Identity-Security-Cloud-Articles/Identity-Security-Cloud-Rule-Guide/ta-p/76665) and an [example implementation](https://community.sailpoint.com/t5/Identity-Security-Cloud-Wiki/Identity-Security-Cloud-Rule-Guide-Before-Provisioning-Rule/ta-p/77415).
+:::caution Important
+Although SaaS Connectivity supports the `std:account:delete` command, ISC does **not** send it automatically during normal leaver lifecycle events. ISC sends the `std:account:disable` command during standard offboarding. Account delete must be triggered explicitly by a `BeforeProvisioning` rule. For more information, see the [documentation](https://community.sailpoint.com/t5/Identity-Security-Cloud-Articles/Identity-Security-Cloud-Rule-Guide/ta-p/76665) and an [example implementation](https://community.sailpoint.com/t5/Identity-Security-Cloud-Wiki/Identity-Security-Cloud-Rule-Guide-Before-Provisioning-Rule/ta-p/77415). If you want to permanently remove accounts on leaver events, implement that logic in your [Account Disable](./account-disable.md) handler instead.
+:::
 
 To use this command, you must specify this value in the `commands` array: `std:account:delete`
 
-The following snippet shows an example of account delete command implementation:
+## Implementation
+
+The following example shows how to look up the account by its native ID and call the source API to delete it:
+
+```typescript
+import {
+    ConnectorError,
+    ConnectorErrorType,
+    Context,
+    Response,
+    StdAccountDeleteInput,
+    StdAccountDeleteOutput,
+} from '@sailpoint/connector-sdk'
+
+.stdAccountDelete(async (context: Context, input: StdAccountDeleteInput, res: Response<StdAccountDeleteOutput>) => {
+    const id = input.key.simple?.id ?? input.identity
+
+    // Confirm the account exists before attempting to delete
+    const account = await myClient.getAccount(id)
+    if (!account) {
+        throw new ConnectorError('Account not found', ConnectorErrorType.NotFound)
+    }
+
+    await myClient.deleteAccount(account.id)
+
+    // Return an empty object — account delete has no output payload
+    res.send({})
+})
+```
+
+If your source does not support hard deletes but you need to remove access, you can implement a soft delete instead:
+
+```typescript
+.stdAccountDelete(async (context: Context, input: StdAccountDeleteInput, res: Response<StdAccountDeleteOutput>) => {
+    // Soft delete: disable the account rather than permanently removing it
+    await myClient.disableAccount(input.identity)
+    res.send({})
+})
+```
+
+The following snippet shows an equivalent implementation using the Airtable example connector:
 
 [index.ts](https://github.com/sailpoint-oss/airtable-example-connector/blob/main/src/index.ts)
 

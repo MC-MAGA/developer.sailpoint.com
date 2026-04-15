@@ -50,11 +50,55 @@ tags: ['Connectivity', 'Connector Command']
 
 ## Description
 
-The account lock and account unlock commands provide ways to temporarily prevent access to an account. ISC only supports the unlock command, so accounts must be locked on the source level, but they can be unlocked through ISC, and ISC can store the account's status.
+The account lock and account unlock commands provide ways to temporarily prevent access to an account. ISC only supports the **unlock** command — accounts can only be locked at the source system level, but they can be unlocked through ISC.
+
+The `locked` state is distinct from the `disabled` state:
+- `disabled: true` means the account has been intentionally deactivated (e.g., a leaver event). Use the [Account Disable](./account-disable.md) command for this.
+- `locked: true` means the account has been temporarily prevented from logging in, typically due to too many failed login attempts. The account can be unlocked without enabling it as a full leaver/joiner action.
 
 To use this command, you must specify this value in the `commands` array: `std:account:unlock`
 
-Implementing account unlock is similar to the other commands that update attributes on an account. The following code unlocks an account:
+## Implementation
+
+Implementing account unlock is similar to the other commands that update attributes on an account. After unlocking, return the updated account with `locked: false`:
+
+```typescript
+import {
+    ConnectorError,
+    ConnectorErrorType,
+    Context,
+    Response,
+    SimpleKey,
+    StdAccountUnlockInput,
+    StdAccountUnlockOutput,
+} from '@sailpoint/connector-sdk'
+
+.stdAccountUnlock(async (context: Context, input: StdAccountUnlockInput, res: Response<StdAccountUnlockOutput>) => {
+    const id = input.key.simple?.id ?? input.identity
+
+    const account = await myClient.getAccount(id)
+    if (!account) {
+        throw new ConnectorError('Account not found', ConnectorErrorType.NotFound)
+    }
+
+    // Call the source API to unlock the account
+    const updated = await myClient.unlockAccount(id)
+
+    res.send({
+        key: SimpleKey(updated.id),
+        disabled: !updated.active,
+        locked: false,
+        attributes: {
+            id: updated.id,
+            displayName: updated.displayName,
+            email: updated.email,
+            groups: updated.groups,
+        },
+    })
+})
+```
+
+The following code from the Airtable example connector shows an equivalent pattern:
 
 ```javascript
 .stdAccountUnlock(async (context: Context, input: StdAccountUnlockInput, res: Response<StdAccountUnlockOutput>) => {
