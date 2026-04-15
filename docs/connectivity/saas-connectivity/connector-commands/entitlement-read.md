@@ -15,7 +15,7 @@ At this time Entitlement Read is not triggered from ISC for any specific workflo
 
 :::
 
-To use this command, you must specify this value in the `commands` array: `std:entitlement:list`
+To use this command, you must specify this value in the `commands` array: `std:entitlement:read`
 
 | Input/Output |        Data Type         |
 | :----------- | :----------------------: |
@@ -57,8 +57,10 @@ To use this command, you must specify this value in the `commands` array: `std:e
         "name": "Administrator"
     },
     "permissions": [
-        "target": "SYSADMIN",
-        "rights": "useAccounts,retrieveAccounts"
+        {
+            "target": "SYSADMIN",
+            "rights": "useAccounts,retrieveAccounts"
+        }
     ]
 }
 ```

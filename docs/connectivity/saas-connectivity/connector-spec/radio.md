@@ -11,26 +11,34 @@ tags: ['Connectivity', 'Connector Spec']
 
 ## How to use the radio type in the connector spec
 
-You can use the `radio` type to create radio buttons for users to interact with to select from a predefined set of values.
+You can use the `radio` type to create radio buttons for users to interact with to select from a predefined set of values. Only one option can be selected at a time.
 
-This is an example implementation:
+### Fields
+
+| Property | Type | Required | Description |
+|---|---|---|---|
+| `key` | string | Yes | The config key used to access the selected value in connector code. |
+| `label` | string | Yes | The label displayed for the radio group in the ISC UI. |
+| `type` | string | Yes | Must be `"radio"`. |
+| `required` | boolean | No | Whether the user must select an option before saving. Defaults to `false`. |
+| `options` | object[] | Yes | The list of radio options. Each option has a `label` (displayed text) and a `value` (the string stored in config). |
 
 ### Example radio item type
 
 ```javascript
 {
-    "key": "airtableURL",
+    "key": "authMethod",
     "type": "radio",
-    "label": "Airtable URL",
+    "label": "Authentication Method",
     "required": true,
     "options": [
         {
-            "label": "Standard",
-            "value": "standard"
+            "label": "API Key",
+            "value": "apiKey"
         },
         {
-            "label": "Custom",
-            "value": "custom"
+            "label": "OAuth2",
+            "value": "oauth2"
         }
     ]
 }
@@ -38,18 +46,33 @@ This is an example implementation:
 
 ![radio input type](../img/radio.png)
 
-You can also create dependencies on other fields so they are hidden until the selection is made. This same type of dependency can be built into any field and linked by using the parentKey/parentValue fields.
+### Reading radio values in connector code
 
-### Example dependency on earlier select field
+The selected `value` string from the chosen option is exposed directly in config:
+
+```typescript
+constructor(config: any) {
+    if (config.authMethod === 'apiKey') {
+        // set up API key auth
+    } else if (config.authMethod === 'oauth2') {
+        // set up OAuth2 auth
+    }
+}
+```
+
+### Conditional field dependencies
+
+You can show or hide other fields based on the radio selection by setting `parentKey` and `parentValue` on the dependent field. The dependent field is hidden until the parent radio (or select) has the expected value:
 
 ```javascript
 {
-    "key": "baseUrl",
-    "type": "text",
-    "label": "Base URL",
-    "parentKey": "airtableURL",
-    "parentValue": "custom",
-    "placeholder": "https://{your domain}",
+    "key": "apiKeyValue",
+    "type": "secret",
+    "label": "API Key",
+    "parentKey": "authMethod",
+    "parentValue": "apiKey",
     "required": true
 }
 ```
+
+In the above example, the `apiKeyValue` secret field is only shown when the administrator has selected `"API Key"` from the `authMethod` radio group. The same `parentKey`/`parentValue` pattern works with any input type, not just `text` and `secret`.

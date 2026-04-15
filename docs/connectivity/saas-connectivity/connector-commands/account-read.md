@@ -58,7 +58,63 @@ To use this command, you must specify this value in the `commands` array: `std:a
 
 ## Implementation
 
-Implementation of account read is similar to account list's implementation, except the code only needs to get one account, not all the accounts. The following snippet is from [airtable.ts](https://github.com/sailpoint-oss/airtable-example-connector/blob/main/src/airtable.ts):
+### Extracting the account ID from the input
+
+ISC passes the account's key in `input.key`. For connectors using `keyType: "simple"`, extract the native ID like this:
+
+```typescript
+const id = input.key.simple?.id ?? input.identity
+```
+
+For `keyType: "compound"`, the key contains multiple named fields:
+
+```typescript
+const id = input.key.compound?.id
+const domain = input.key.compound?.domain
+```
+
+### Registering the handler
+
+```typescript
+import {
+    ConnectorError,
+    ConnectorErrorType,
+    Context,
+    Response,
+    SimpleKey,
+    StdAccountReadInput,
+    StdAccountReadOutput,
+} from '@sailpoint/connector-sdk'
+
+.stdAccountRead(async (context: Context, input: StdAccountReadInput, res: Response<StdAccountReadOutput>) => {
+    const id = input.key.simple?.id ?? input.identity
+
+    const account = await myClient.getAccount(id)
+
+    // If the account is not found, throw NotFound — ISC will then trigger account create
+    if (!account) {
+        throw new ConnectorError('Account not found', ConnectorErrorType.NotFound)
+    }
+
+    res.send({
+        key: SimpleKey(account.id),
+        disabled: !account.active,
+        locked: account.locked,
+        attributes: {
+            id: account.id,
+            displayName: account.displayName,
+            email: account.email,
+            groups: account.groups,
+        },
+    })
+})
+```
+
+### The NotFound error type
+
+If an account cannot be found in the source, throw a `ConnectorError` with type `ConnectorErrorType.NotFound`. This is a special signal to ISC that the account does not exist on the source. When ISC receives this error during an account read triggered by a provisioning event, it will automatically call the `std:account:create` command to provision the account. Without this specific error type, ISC treats the failure as a generic error and does not attempt to create the account.
+
+The following snippet from the Airtable example connector shows this pattern:
 
 ```javascript
 async getAccount(identity: SimpleKeyType | CompoundKeyType): Promise<AirtableAccount> {
@@ -78,32 +134,23 @@ async getAccount(identity: SimpleKeyType | CompoundKeyType): Promise<AirtableAcc
     }).catch(err => {
         throw new ConnectorError('error while getting account: ' + err)
     }).finally(() => {
-        // if the account is not found, throw the special NotFound error type
         if (!found) {
-            throw new ConnectorError("Account not found", ConnectorErrorType.NotFound)
+            throw new ConnectorError('Account not found', ConnectorErrorType.NotFound)
         }
     })
 }
 ```
 
-One special case of this command is the `NotFound` type. On line 20, if an account is not found, the `ConnectorError` is thrown with the `ConnectorErrorType.NotFound` type. This tells ISC the account does not exist, and ISC then triggers the account create logic to generate the account.
-
-The following code snippet from [index.ts](https://github.com/sailpoint-oss/airtable-example-connector/blob/main/src/index.ts) shows how to register the account read command on the connector object:
+The following code snippet from [index.ts](https://github.com/sailpoint-oss/airtable-example-connector/blob/main/src/index.ts) shows how to register the command:
 
 ```javascript
-// Connector must be exported as module property named connector
 export const connector = async () => {
-
-    // Get connector source config
     const config = await readConfig()
-
-    // Use the vendor SDK, or implement own client as necessary, to initialize a client
     const airtable = new AirtableClient(config)
 
     return createConnector()
         .stdAccountRead(async (context: Context, input: StdAccountReadInput, res: Response<StdAccountReadOutput>) => {
             const account = await airtable.getAccount(input.key)
-
             res.send(account.toStdAccountReadOutput())
         })
 ...

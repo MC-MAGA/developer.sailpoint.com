@@ -16,7 +16,6 @@ If you want to prepopulate a field in the connector spec configuration with an i
 
 ```json
 "sourceConfigInitialValues": {
-    // Note that the key `airtableURL` is also the key of the item the initial value is provided for
     "airtableURL": "https://api.airtable.example.com/v0"
 },
 "sourceConfig": [
@@ -25,15 +24,13 @@ If you want to prepopulate a field in the connector spec configuration with an i
         "label": "Configuration",
         "items": [
             {
-
                 "type": "section",
                 "sectionTitle": "Authentication",
                 "sectionHelpMessage": "Provide the parameters to connect with the airtable worksheet.",
                 "items": [
                     {
-                        // The key is what you use to assign initial values to the spec
                         "key": "airtableURL",
-                        "label": "airtable url",
+                        "label": "Airtable URL",
                         "required": true,
                         "type": "text"
                     }
