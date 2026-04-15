@@ -159,6 +159,7 @@ const config: Config = {
     AUTH_PASSWORD: process.env.AUTH_PASSWORD || '',
     ENDPOINT_OVERRIDE: process.env.ENDPOINT_OVERRIDE || '',
     SAMPLE_TABLE: process.env.SAMPLE_TABLE || '',
+    SECRET_MESSAGE: process.env.SECRET_MESSAGE || '',
     CMS_APP_API_ENDPOINT:
       process.env.NODE_ENV === 'development'
         ? 'http://localhost:3000/'
