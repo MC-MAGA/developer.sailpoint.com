@@ -200,6 +200,7 @@ import MermaidViewer from '@site/src/components/MermaidViewer';
         variant ACCESS_MODEL_METADATA "Access model metadata assignments"
         variant ACCESS_REQUEST_CONFIG "Access request configuration"
         variant MEMBERSHIP "Role membership criteria"
+        text STATUS "Role Status - Enabled or Disabled"
         datetime SYNC_DATE "When the row is last synced"
     }
     DIMENSION {
