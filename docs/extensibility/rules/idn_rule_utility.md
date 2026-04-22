@@ -570,15 +570,11 @@ The `isUniqueLDAPValue` method calls an LDAP-type connector directly to determin
 This is commonly used in field-level rules on a Create Profile to validate uniqueness (for example, `sAMAccountName`) before provisioning a new account.
 
 ```java
-public boolean isUnique(String userName) {
-    boolean retVal = false;
-    String identityId = identity.getId();
-    String applicationId = application.getId();
+//IdnRuleUtil is available in rules as the "idn" variable, which you can use the same way you can currently use context.
+String identityId = identity.getId();
+String applicationId = application.getId();
 
-    retVal = idn.isUniqueLDAPValue(identityId, applicationId, "sAMAccountName", userName);
-
-    return retVal;
-}
+return idn.isUniqueLDAPValue(identityId, applicationId, "sAMAccountName", value);
 ```
 
 #### Overriding the search base with `cloudUniqueSearchDN`
