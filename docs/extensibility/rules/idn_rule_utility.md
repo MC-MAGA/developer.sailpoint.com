@@ -562,3 +562,37 @@ Map acctAttrs = acct.getAttributes();
 String firstName = acctAttrs.get("First Name");
 String lastName = acctAttrs.get("Last Name");
 ```
+
+### Check if an LDAP attribute value is unique
+
+The `isUniqueLDAPValue` method calls an LDAP-type connector directly to determine whether a given attribute value is already in use. Unlike the promoted-attribute approach, this method queries the connector itself rather than relying on aggregated account data in Identity Security Cloud.
+
+This is commonly used in field-level rules on a Create Profile to validate uniqueness (for example, `sAMAccountName`) before provisioning a new account.
+
+```java
+public boolean isUnique(String userName) {
+    boolean retVal = false;
+    String identityId = identity.getId();
+    String applicationId = application.getId();
+
+    retVal = idn.isUniqueLDAPValue(identityId, applicationId, "sAMAccountName", userName);
+
+    return retVal;
+}
+```
+
+#### Overriding the search base with `cloudUniqueSearchDN`
+
+By default, `isUniqueLDAPValue` uses the search base (root DN) configured on the source. You can override this by adding the `cloudUniqueSearchDN` connector attribute to the source's connector attributes. When present, this value is used as the search base instead of the source-level configuration.
+
+Add the following under `connectorAttributes` in your source configuration:
+
+```json
+"cloudUniqueSearchDN": "DC=level,DC=com"
+```
+
+:::info
+
+For additional context and community discussion on this feature, see the [Uniqueness check for AD source](https://developer.sailpoint.com/discuss/t/uniqueness-check-for-ad-source/36434/4) thread in the SailPoint Developer Community.
+
+:::
