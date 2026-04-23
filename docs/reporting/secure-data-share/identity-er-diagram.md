@@ -196,9 +196,25 @@ import MermaidViewer from '@site/src/components/MermaidViewer';
         array ACCESS_PROFILES "List of Access Profiles associated with the Role"
         array ENTITLEMENTS "List of entitlements associated with the Role"
         text OWNER_IDENTITY_ID "Identity that owns the object"
+        boolean DIMENSIONAL "Whether the role has dimensions"
         variant ACCESS_MODEL_METADATA "Access model metadata assignments"
         variant ACCESS_REQUEST_CONFIG "Access request configuration"
         variant MEMBERSHIP "Role membership criteria"
+        text STATUS "Role Status - Enabled or Disabled"
+        datetime SYNC_DATE "When the row is last synced"
+    }
+    DIMENSION {
+        text TENANT_ID "Unique Id for an Organization tenant"
+        text ID PK "Unique Id for the Dimension"
+        text NAME "Name of the Dimension"
+        text DESCRIPTION "Description of the Dimension"
+        text OWNER_IDENTITY_ID "Identity that owns the Dimension"
+        text ROLE_ID "Role ID that this dimension belongs to"
+        variant MEMBERSHIP "Dimension membership criteria"
+        variant ENTITLEMENTS "List of entitlements associated with the Dimension"
+        variant ACCESS_PROFILES "List of Access Profiles associated with the Dimension"
+        datetime CREATED_DATE "date when the dimension was created"
+        datetime UPDATED_DATE "date when the dimension was modified"
         datetime SYNC_DATE "When the row is last synced"
     }
     CERTIFICATION_ITEM {
@@ -374,4 +390,6 @@ import MermaidViewer from '@site/src/components/MermaidViewer';
     ACCESS_MODEL_METADATA_ATTRIBUTE }o--|| ENTITLEMENT: "Assignment of Attributes to"
     ACCESS_MODEL_METADATA_ATTRIBUTE }o--|| ACCESS_PROFILE: "Assignment of Attributes to"
     ACCESS_MODEL_METADATA_ATTRIBUTE }o--|| ROLE: "Assignment of Attributes to"
+    ROLE ||--o{ DIMENSION: "has dimensions"
+    DIMENSION }o--|| IDENTITY: "Owned by"
     '></MermaidViewer>
