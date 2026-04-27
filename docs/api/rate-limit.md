@@ -14,9 +14,9 @@ tags: ['Rate Limit']
 
 ### Current default (API gateway)
 
-There is a default rate limit of 100 requests per `client_id` per 10 seconds for traffic through the API gateway.
-Which API version you call does not change this default; the limit applies **gateway-wide**. If you exceed the rate
-limit, expect the following response from the API:
+There is a default rate limit of 100 requests per `client_id` and API version per 10 seconds for traffic through 
+the API gateway. The default rate limit is the same across all API versions, but is applied to each API version
+separately. If you exceed the rate limit, expect the following response from the API:
 
 **HTTP Status Code**: 429 Too Many Requests
 
@@ -32,8 +32,8 @@ Specific APIs may have different rate limiting. Refer to their specifications fo
 
 :::tip What changed
 
-Gateway rate limiting now keys off **`client_id`** (still **100 requests per 10 seconds** by default). Earlier
-documentation described the same ceiling per **`access_token`**. Plan retries and concurrency around **`client_id`** so
+Gateway rate limiting now keys off **`client_id`** and API version (still **100 requests per 10 seconds** by default). 
+Earlier documentation described the same ceiling per **`access_token`**. Plan retries and concurrency around **`client_id`** so
 your behavior matches how the gateway enforces limits.
 
 :::
